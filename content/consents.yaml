@@ -1,0 +1,41 @@
+# Data-receipt wording (A02). Bump `version` whenever the wording changes: every consent event stores it.
+# DRAFT: needs your privacy adviser and the DPIA before real users.
+version: "receipt-v1.1-draft"
+consents:
+  health_data:
+    title: "Keep my check-ins and hair-health notes"
+    what: "Your check-in answers (tightness, soreness, bumps, itch, edges), concerns you type in, and notes."
+    why: "To spot patterns over time and tailor your routine. This is health information, so we ask first."
+    where: "Crown AI's database. Anything you type is screened by OpenAI's moderation service. When you run a Crown Map check, your answers for each zone (never your name) are sent to OpenAI to write the plain-English explanation."
+    who: "You, plus anyone you choose to give a care pack or stylist note to."
+    how_long: "Until you delete it or your account. You can export or delete everything in Settings."
+    required_for: "Check-ins and concern-based onboarding"
+  analysis:
+    title: "Analyse my photos"
+    what: "Photos of the scalp zones you pick, and your answers about those zones."
+    why: "To describe what is visible in each zone. The AI only describes; written rules set each zone's state."
+    where: "Sent from Crown AI's server to OpenAI for moderation and description. OpenAI does not train on API data by default; it may keep abuse-monitoring logs for up to 30 days, and image inputs are scanned for child sexual abuse material."
+    who: "Crown AI's server and OpenAI, for this purpose only."
+    how_long: "The photo leaves OpenAI's systems as above. What we keep depends on the next switch."
+    required_for: "Photo checks"
+  photo_retention:
+    title: "Keep my photos"
+    what: "The re-encoded photos (location and camera data removed)."
+    why: "So you can compare zones over time in your Journal."
+    where: "Private storage, served only to you through a signed-in, owner-checked route."
+    who: "Only you."
+    how_long: "Until you delete the photo or your account. Off means photos are deleted right after the check runs."
+  sharing:
+    title: "Let me share packs and notes"
+    what: "Care packs and stylist notes you create."
+    why: "So you can download or share them yourself. Nothing is ever sent without you pressing share."
+    where: "Created on Crown AI's server and handed to you."
+    who: "Whoever you choose to send them to."
+    how_long: "We keep a record of what each pack contained, not the file."
+  reminders:
+    title: "Remind me outside the app"
+    what: "Notifications on check-in, wash and take-down days."
+    why: "To keep your rhythm without opening the app."
+    where: "Push notifications arrive in a later version. Until then nothing is sent; your Today screen shows what's due either way."
+    who: "Only you."
+    how_long: "Until you switch this off."

@@ -1,0 +1,43 @@
+# Scripted onboarding chat (B02). Quick replies; AI only turns typed text into profile fields.
+steps:
+  - id: route
+    say: "Hi, I'm Crown AI. I help you look after your hair and scalp, with no photos needed to start. What brings you here?"
+    options: [[routine, "Help with my routine"], [concern, "Something's worrying me"], [questions, "I just have questions"]]
+  - id: name
+    say: "What should I call you?"
+    input: text
+    optional: true
+  - id: style_kind
+    say: "What's your hair in right now?"
+    options: [[braids, "Braids"], [twists, "Twists"], [locs, "Locs"], [cornrows, "Cornrows"], [wig, "Wig"], [weave, "Weave or extensions"], [natural, "My own hair, out"], [other, "Something else"]]
+  - id: install_date
+    say: "When did it go in?"
+    input: date
+    only_if: {style_kind: [braids, twists, locs, cornrows, wig, weave, other]}
+    optional: true
+  - id: wash_frequency
+    say: "How often do you usually wash?"
+    options: [[weekly, "Every week"], [fortnightly, "Every 2 weeks"], [less, "Less often"], [varies, "It varies"]]
+  - id: wash_day
+    say: "Which day is usually wash day?"
+    options: [[mon, "Mon"], [tue, "Tue"], [wed, "Wed"], [thu, "Thu"], [fri, "Fri"], [sat, "Sat"], [sun, "Sun"], [varies, "It varies"]]
+  - id: treatments
+    say: "Do you use heat or chemical treatments?"
+    multi: true
+    options: [[heat, "Heat styling"], [relaxer, "Relaxer"], [colour, "Dye or colour"], [none, "Neither"]]
+  - id: goals
+    say: "What would you like help with?"
+    multi: true
+    options: [[moisture, "Moisture"], [breakage, "Less breakage"], [edges, "Healthy edges"], [length, "Length"], [scalp, "Scalp comfort"], [learning, "Learning about my hair"]]
+  - id: health_consent
+    say: "To keep check-ins and any concerns you share, I need your OK to store hair-health information. You can change this any time."
+    consent: health_data
+  - id: concern_text
+    say: "Tell me what's worrying you, in your own words."
+    input: text
+    only_if: {route: [concern]}
+    needs_consent: health_data
+    optional: true
+  - id: reminders_consent
+    say: "Want notifications on check-in, wash and take-down days? They arrive in a later version; your Today screen shows what's due either way."
+    consent: reminders

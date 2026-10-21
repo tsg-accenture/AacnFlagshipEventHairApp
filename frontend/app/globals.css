@@ -1,0 +1,378 @@
+@import 'tailwindcss';
+
+/*
+  Crown AI tokens, v2 look (from the two reference boards):
+  - a cool light-grey canvas with white tiles and frosted panels,
+  - a soft lime action colour with black round buttons,
+  - Playfair Display headlines with an italic gold word, Manrope for everything else,
+  - ring tiles in teal, violet and olive for real counts (never for made-up scores).
+  Text pairings are WCAG AA (4.5:1, or 3:1 for headline-size text only). Status colours are the
+  colour-blind-checked set from v1 and are never shown without a word and a shape.
+*/
+:root {
+  --ground: #ebebe8;
+  --ground-glow: #f8f8f6;
+  --surface: #ffffff;
+  --panel: #f5f5f3;
+  --raised: #efefec;
+  --ink: #151515;
+  --muted: #5e5e5a;
+  --line: #e1e1dc; /* decorative edges */
+  --track: #e1e1dc; /* empty part of rings, tick bars and step bars */
+  --line-strong: #8a8a84; /* inputs and controls: 3.4:1 on white */
+  --lime: #eef27e;
+  --on-lime: #151515;
+  --lime-tint: #f6f8cf;
+  --ink-icon: #eef27e; /* an icon sitting on an ink-filled button */
+  --accent: #9a6a0c; /* italic headline word only: 3.9:1 on the canvas, 4.6:1 on white */
+  --sand-1: #f3efea;
+  --sand-2: #d8cabe;
+  --teal: #23877b;
+  --violet: #8a4fc0;
+  --olive: #6f7d12;
+  --calm: #1f5fa8;
+  --calm-tint: #e6eef9;
+  --watch: #9e6100;
+  --watch-tint: #fdf4e6;
+  --check: #9b1c31;
+  --check-tint: #f9e5e8;
+  --notc: #6b6b66;
+  --notc-tint: #f0f0ee;
+  --focus: #151515;
+  --glass: rgb(255 255 255 / 0.62);
+  --glass-edge: rgb(255 255 255 / 0.85);
+  --shadow: 0 1px 2px rgb(20 20 20 / 0.05), 0 18px 40px -18px rgb(20 20 20 / 0.28);
+  --shadow-soft: 0 10px 30px -16px rgb(20 20 20 / 0.22);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --ground: #111211;
+    --ground-glow: #1d1e1c;
+    --surface: #1c1d1b;
+    --panel: #181917;
+    --raised: #272825;
+    --ink: #f3f3ef;
+    --muted: #ababa5;
+    --line: #2e2f2c;
+    --track: #3a3b38;
+    --line-strong: #74756f;
+    --lime: #e8ee6e;
+    --on-lime: #151515;
+    --lime-tint: #2c2e18;
+    --ink-icon: #151515;
+    --accent: #e4b457;
+    --sand-1: #2a2622;
+    --sand-2: #3d342c;
+    --teal: #4fc4b3;
+    --violet: #bc8ef0;
+    --olive: #c6d44b;
+    --calm: #8cc3f5;
+    --calm-tint: #1e2a38;
+    --watch: #df960e;
+    --watch-tint: #33281a;
+    --check: #fc5f69;
+    --check-tint: #3a2024;
+    --notc: #a0a09b;
+    --notc-tint: #272825;
+    --focus: #e8ee6e;
+    --glass: rgb(28 29 27 / 0.7);
+    --glass-edge: rgb(255 255 255 / 0.08);
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 18px 40px -18px rgb(0 0 0 / 0.8);
+    --shadow-soft: 0 10px 30px -16px rgb(0 0 0 / 0.7);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --ground: #111211;
+  --ground-glow: #1d1e1c;
+  --surface: #1c1d1b;
+  --panel: #181917;
+  --raised: #272825;
+  --ink: #f3f3ef;
+  --muted: #ababa5;
+  --line: #2e2f2c;
+  --track: #3a3b38;
+  --line-strong: #74756f;
+  --lime: #e8ee6e;
+  --on-lime: #151515;
+  --lime-tint: #2c2e18;
+  --ink-icon: #151515;
+  --accent: #e4b457;
+  --sand-1: #2a2622;
+  --sand-2: #3d342c;
+  --teal: #4fc4b3;
+  --violet: #bc8ef0;
+  --olive: #c6d44b;
+  --calm: #8cc3f5;
+  --calm-tint: #1e2a38;
+  --watch: #df960e;
+  --watch-tint: #33281a;
+  --check: #fc5f69;
+  --check-tint: #3a2024;
+  --notc: #a0a09b;
+  --notc-tint: #272825;
+  --focus: #e8ee6e;
+  --glass: rgb(28 29 27 / 0.7);
+  --glass-edge: rgb(255 255 255 / 0.08);
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 18px 40px -18px rgb(0 0 0 / 0.8);
+  --shadow-soft: 0 10px 30px -16px rgb(0 0 0 / 0.7);
+  color-scheme: dark;
+}
+
+/* High contrast: every state and ring in ink, strong borders, no tints, no blur, no glow. */
+:root[data-contrast='high'] {
+  --muted: var(--ink);
+  --line: var(--ink);
+  --line-strong: var(--ink);
+  --accent: var(--ink);
+  --calm: var(--ink);
+  --watch: var(--ink);
+  --check: var(--ink);
+  --notc: var(--ink);
+  --teal: var(--ink);
+  --violet: var(--ink);
+  --olive: var(--ink);
+  --calm-tint: var(--surface);
+  --watch-tint: var(--surface);
+  --check-tint: var(--surface);
+  --notc-tint: var(--surface);
+  --lime-tint: var(--surface);
+  --panel: var(--surface);
+  --glass: var(--surface);
+  --glass-edge: var(--ink);
+  --track: color-mix(in srgb, var(--ink) 22%, var(--surface));
+}
+
+/* Text size: rem-based, so the whole app scales. */
+:root[data-text='large'] {
+  font-size: 112.5%;
+}
+:root[data-text='larger'] {
+  font-size: 125%;
+}
+
+@theme inline {
+  --color-ground: var(--ground);
+  --color-surface: var(--surface);
+  --color-panel: var(--panel);
+  --color-raised: var(--raised);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-track: var(--track);
+  --color-lime: var(--lime);
+  --color-on-lime: var(--on-lime);
+  --color-lime-tint: var(--lime-tint);
+  --color-ink-icon: var(--ink-icon);
+  --color-accent: var(--accent);
+  --color-teal: var(--teal);
+  --color-violet: var(--violet);
+  --color-olive: var(--olive);
+  --color-calm: var(--calm);
+  --color-calm-tint: var(--calm-tint);
+  --color-watch: var(--watch);
+  --color-watch-tint: var(--watch-tint);
+  --color-check: var(--check);
+  --color-check-tint: var(--check-tint);
+  --color-notc: var(--notc);
+  --color-notc-tint: var(--notc-tint);
+  --font-serif: var(--font-playfair), Georgia, 'Times New Roman', serif;
+  --font-sans: var(--font-body), system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --radius-tile: 1.5rem;
+  --radius-card: 1.75rem;
+  --radius-sheet: 2.25rem;
+  --radius-input: 1.25rem;
+  --shadow-float: var(--shadow);
+  --shadow-soft: var(--shadow-soft);
+}
+
+:root {
+  --font-body: var(--font-manrope);
+}
+:root[data-font='readable'] {
+  --font-body: var(--font-atkinson);
+}
+
+html {
+  background: var(--ground);
+  /* Keep focused or scrolled-to content clear of the floating tab bar (WCAG 2.4.11). */
+  scroll-padding-bottom: 8rem;
+}
+@media (min-width: 64rem) {
+  html {
+    scroll-padding-bottom: 1rem;
+  }
+}
+
+body {
+  min-height: 100dvh;
+  background:
+    radial-gradient(70rem 36rem at 50% -8rem, var(--ground-glow) 0%, transparent 70%),
+    var(--ground);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 1.0625rem; /* 17px body */
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+  border-radius: 999px;
+}
+
+/* Headlines: Playfair Display, with one italic gold word where it helps (the boards' signature). */
+.title,
+.title-xl,
+.title-md {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  letter-spacing: -0.012em;
+  text-wrap: balance;
+}
+.title {
+  font-size: 2.15rem;
+  line-height: 1.1;
+}
+.title-md {
+  font-size: 1.6rem;
+  line-height: 1.15;
+}
+.title-xl {
+  font-size: clamp(2.6rem, 6.4vw, 4.6rem);
+  line-height: 1.04;
+}
+.title em,
+.title-xl em,
+.title-md em {
+  font-style: italic;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* Small label above a value in a tile */
+.label {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.num {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* Frosted panel laid over art, like the boards' result sheets */
+.glass {
+  background: var(--glass);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  border: 1px solid var(--glass-edge);
+}
+.blur-sheet {
+  background: color-mix(in srgb, var(--surface) 86%, transparent);
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+}
+:root[data-contrast='high'] .glass,
+:root[data-contrast='high'] .blur-sheet {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: var(--surface);
+  border: 2px solid var(--ink);
+}
+:root[data-contrast='high'] .hc-border {
+  border: 2px solid var(--ink);
+}
+
+/* Warm art panel behind the crown illustration (board 2's sand gradient) */
+.art-panel {
+  background:
+    radial-gradient(28rem 20rem at 30% 12%, rgb(255 255 255 / 0.55), transparent 70%),
+    linear-gradient(165deg, var(--sand-1) 0%, var(--sand-2) 100%);
+}
+:root[data-contrast='high'] .art-panel {
+  background: var(--surface);
+  border: 2px solid var(--ink);
+}
+
+/* Zone marker glow on the crown art */
+.zone-glow {
+  filter: drop-shadow(0 0 6px currentColor);
+}
+:root[data-contrast='high'] .zone-glow {
+  filter: none;
+}
+
+/* Horizontal scrollers ("For you") */
+.scroller {
+  scrollbar-width: none;
+  scroll-snap-type: x mandatory;
+  /* Without paint containment, mobile Chrome lets the cards' blurred chips widen the page. */
+  contain: paint;
+}
+.scroller::-webkit-scrollbar {
+  display: none;
+}
+.scroller > * {
+  scroll-snap-align: start;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* One orchestrated moment: the welcome art settles in once. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.rise {
+  animation: rise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.rise-2 {
+  animation: rise 0.8s 0.18s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.rise-3 {
+  animation: rise 0.8s 0.36s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+/* Long-form article text */
+.prose-crown h2 {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: 1.7rem;
+  line-height: 1.15;
+  margin: 1.75rem 0 0.5rem;
+}
+.prose-crown p {
+  margin: 0.75rem 0;
+  max-width: 65ch;
+}
+.prose-crown ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+  margin: 0.75rem 0;
+}
+.prose-crown li {
+  margin: 0.35rem 0;
+  max-width: 62ch;
+}

@@ -1,0 +1,23 @@
+# Signposting (Phase 4). Links only: in-app postcode search needs a data agreement (plan, risks table).
+links:
+  - id: nhs-find-a-gp
+    name: "NHS: Find a GP"
+    url: "https://www.nhs.uk/service-search/find-a-gp"
+    why: "Start here. The NHS says to see a GP if you're worried about your hair loss."
+  - id: bhns-find-a-specialist
+    name: "British Hair and Nail Society: Find a specialist"
+    url: "https://bhns.org.uk/find_specialist.php"
+    why: "Dermatologists and specialists in hair and nails, NHS and private."
+  - id: trichologists-register
+    name: "Institute of Trichologists: UK register"
+    url: "https://trichologists.org.uk/trichologists-register-united-kingdom"
+    why: "A searchable register of trichologists."
+  - id: nhs-hair-loss
+    name: "NHS: Hair loss"
+    url: "https://www.nhs.uk/conditions/hair-loss/"
+    why: "NHS information about hair loss and support."
+questions_for_appointment:
+  - "What could be causing the changes in my hair or scalp?"
+  - "Should I change or stop any of my styles or treatments?"
+  - "Would it help to see a dermatologist?"
+  - "What should I look out for, and when should I come back?"

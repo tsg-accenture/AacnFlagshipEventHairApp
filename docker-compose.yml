@@ -1,0 +1,26 @@
+# OPTIONAL. You don't need Docker: by default the backend uses a SQLite file (see README, "Run it").
+# Where Docker is allowed, this gives you Postgres 18 with pgvector, like production:
+#   docker compose up -d db
+#   then in backend/.env: DATABASE_URL=postgresql+psycopg://crown:crown@localhost:5432/crown
+# The init script also creates crown_test for running the backend tests against Postgres.
+services:
+  db:
+    image: pgvector/pgvector:pg18
+    environment:
+      POSTGRES_USER: crown
+      POSTGRES_PASSWORD: crown
+      POSTGRES_DB: crown
+    ports:
+      - "5432:5432"
+    volumes:
+      # Postgres 18+ images keep data under /var/lib/postgresql (not .../data).
+      - crown-db:/var/lib/postgresql
+      - ./scripts/db-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U crown -d crown"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  crown-db:

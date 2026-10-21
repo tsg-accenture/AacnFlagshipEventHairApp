@@ -1,0 +1,10 @@
+# Fixed reply when a message suggests someone may be at risk. DRAFT: the advisor must approve this wording.
+message: >-
+  It sounds like things might be really hard right now. You don't have to go through this on your own.
+  You can call Samaritans free, any time, on 116 123. For urgent help, call NHS 111 and choose the mental health option.
+  If your life or someone else's is at risk right now, call 999.
+links:
+  - name: "Samaritans: 116 123 (free, 24 hours)"
+    url: "https://www.samaritans.org/how-we-can-help/contact-samaritan/"
+  - name: "NHS: Where to get urgent help for mental health"
+    url: "https://www.nhs.uk/nhs-services/mental-health-services/where-to-get-urgent-help-for-mental-health/"

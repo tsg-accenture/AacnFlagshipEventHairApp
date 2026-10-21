@@ -1,0 +1,152 @@
+# Crown AI rules, version 1 — DRAFT
+#
+# STATUS: PLACEHOLDER WRITTEN BY THE BUILD TEAM, NOT BY A CLINICIAN.
+# These rules exist so every flow can be tried end to end. They must be replaced or
+# signed off by the clinical advisor before any real user sees a zone state or a
+# "get checked" prompt (plan: Phase 1 and Phase 3 gates).
+#
+# How it works
+# - The AI never sets a state. It only reports what a photo shows (visible / not_visible /
+#   cant_tell per sign). These rules combine that with what the person tells us.
+# - Conditions use: {field, in: [...]}, {field, not_in: [...]}, {all: [...]}, {any: [...]}, or "always".
+# - Within each list the first matching rule wins.
+# - Field names: check-ins use tightness, soreness, bumps, itch, edges.
+#   Zones use obs.<sign> (from the photo) and answer.<question> (from the person).
+
+version: "v1-draft-2026-10-20"
+status: draft
+owner: "Clinical advisor (to be appointed)"
+
+checkin:
+  outcomes:
+    - id: CI-RED-1
+      when:
+        all:
+          - {field: tightness, in: [hurts]}
+          - {field: bumps, in: [lots]}
+      outcome: too_tight
+      escalate: true
+      reason: "Pain together with lots of bumps."
+    - id: CI-TIGHT-1
+      when:
+        any:
+          - {field: tightness, in: [hurts]}
+          - {field: soreness, in: [hurts]}
+      outcome: too_tight
+      reason: "The style hurts."
+    - id: CI-EASE-1
+      when:
+        any:
+          - {field: tightness, in: [a_little]}
+          - {field: soreness, in: [a_little]}
+          - {field: bumps, in: [a_few, lots]}
+          - {field: edges, in: [thinner]}
+      outcome: ease_the_pull
+      reason: "Some pull, soreness, bumps or edge changes reported."
+    - id: CI-OK-1
+      when: always
+      outcome: all_good
+      reason: "Nothing concerning reported."
+
+  messages:
+    all_good:
+      title: "Sounds comfortable"
+      body: "Nothing you've told us today needs action. Keep checking in, because early changes are the easiest to act on."
+      action: "Next check-in in about a week."
+      article: early-changes
+    ease_the_pull:
+      title: "Ease the pull where you can"
+      body: >-
+        Constant pulling on the hair can damage it over time, most often at the edges and temples.
+        Skip extra tension on top of the style, such as tight ponytails or buns, and next time ask
+        your stylist for looser braids at the front.
+      action: "Check in again in 2 to 3 days."
+      article: tight-styles-and-your-edges
+    too_tight:
+      title: "This sounds too tight"
+      body: >-
+        Pain is a sign a style is too tight: the American Academy of Dermatology puts it as "pain equals damage".
+        Consider taking out or loosening the tightest sections. If soreness, bumps or itching carry on, it's worth getting checked.
+      action: "Loosen or take out the tightest sections, then check in again tomorrow."
+      article: signs-a-style-is-too-tight
+
+# Patterns across check-ins. A match sets an escalation the Today screen and /get-checked show.
+patterns:
+  - id: PAT-SORE-REPEAT
+    window_days: 28
+    min_count: 2
+    match:
+      any:
+        - {field: tightness, in: [hurts]}
+        - {field: soreness, in: [hurts]}
+    result: get_checked
+    reason: "You've reported pain in {count} check-ins in the last 4 weeks."
+  - id: PAT-EDGES-THINNER
+    window_days: 56
+    min_count: 2
+    match: {field: edges, in: [thinner]}
+    result: get_checked
+    reason: "You've said your edges feel thinner in {count} check-ins in the last 8 weeks."
+  - id: PAT-BUMPS-REPEAT
+    window_days: 28
+    min_count: 3
+    match: {field: bumps, in: [a_few, lots]}
+    result: get_checked
+    reason: "You've reported bumps in {count} check-ins in the last 4 weeks."
+
+zones:
+  red_flags:
+    - id: Z-RED-1
+      when:
+        all:
+          - {field: answer.tender, in: ["yes"]}
+          - {field: answer.bumps, in: ["yes"]}
+      state: get_checked
+      reason: "You said this area is sore and has bumps or spots."
+  rules:
+    - id: Z-NC-1
+      when:
+        all:
+          - {field: obs.short_broken_hairs, in: [cant_tell, missing]}
+          - {field: obs.looks_thinner, in: [cant_tell, missing]}
+          - {field: obs.flaking, in: [cant_tell, missing]}
+          - {field: obs.build_up, in: [cant_tell, missing]}
+          - {field: obs.bumps_or_spots, in: [cant_tell, missing]}
+          - {field: answer.tender, in: [missing]}
+          - {field: answer.change, in: [missing]}
+      state: not_checked
+      reason: "We couldn't see this area and you didn't answer its questions."
+    - id: Z-GC-1
+      when:
+        all:
+          - {field: obs.looks_thinner, in: [visible]}
+          - {field: answer.change, in: ["yes"]}
+      state: get_checked
+      reason: "The photo looks thinner here than around it, and you've noticed a change."
+    - id: Z-W-1
+      when:
+        any:
+          - {field: obs.looks_thinner, in: [visible]}
+          - {field: obs.short_broken_hairs, in: [visible]}
+          - {field: answer.change, in: ["yes"]}
+          - {field: answer.tender, in: [a_little, "yes"]}
+      state: watch
+      reason: "Some changes worth keeping an eye on."
+    - id: Z-W-2
+      when:
+        all:
+          - {field: obs.flaking, in: [visible]}
+          - {field: answer.itch, in: ["yes"]}
+      state: watch
+      reason: "Flaking that you also feel as itch."
+    - id: Z-C-1
+      when: always
+      state: calm
+      reason: "Nothing reported or seen that needs action."
+
+  # Library topics each state's explanation draws on.
+  topics:
+    calm: [early-changes, wash-day-basics]
+    watch: [tight-styles-and-your-edges, early-changes, flaking-and-itchy-scalp]
+    get_checked: [when-to-get-checked, tight-styles-and-your-edges]
+    not_checked: [early-changes]

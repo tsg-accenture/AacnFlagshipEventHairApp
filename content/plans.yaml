@@ -1,0 +1,67 @@
+# DRAFT care-plan and wash-day templates. Each item names the library article it comes from.
+# The server fills in {style}, {wash_day} and {take_down} from the person's profile and Hair Rhythm.
+# AI never adds items: it may only write a short intro from these items (POST /plans/refresh).
+care_plan:
+  daily:
+    - id: notice-tension
+      text: "Notice how your style feels. Tightness or soreness means it's time to loosen it."
+      article: signs-a-style-is-too-tight
+  weekly:
+    - id: wash-frequency
+      text: "Wash once a week or every other week{wash_day_phrase}."
+      article: wash-day-basics
+    - id: condition-every-wash
+      text: "Use conditioner every time you wash."
+      article: wash-day-basics
+    - id: weekly-checkin
+      text: "Do your weekly check-in, including how your edges feel."
+      article: early-changes
+  monthly:
+    - id: hot-oil
+      text: "A hot oil treatment twice a month."
+      article: wash-day-basics
+  when:
+    protective_style:
+      - id: plan-take-down
+        text: "Plan your take-down{take_down_phrase}. One dermatologist suggests braids out after three months, and weaves or extensions after eight weeks."
+        article: how-long-to-keep-styles-in
+      - id: looser-front
+        text: "Ask your stylist for looser braids or locs at your next install."
+        article: tight-styles-and-your-edges
+    uses_heat:
+      - id: heat-protect
+        text: "Before heat styling, use a heat protectant and the lowest temperature that works."
+        article: heat-and-chemical-treatments
+    chemical:
+      - id: chemical-pro
+        text: "Have relaxers and dyes applied by a professional, and never relax hair that is already relaxed."
+        article: heat-and-chemical-treatments
+  seasonal: []   # waiting for advisor content
+
+wash_day:
+  steps:
+    - id: set-up
+      title: "Set up"
+      body: "Gather your shampoo, conditioner and a towel. Put your phone somewhere it won't get wet: the buttons here are big enough for wet hands."
+    - id: shampoo
+      title: "Shampoo your scalp"
+      body: "Work the shampoo into your scalp, then rinse."
+      article: wash-day-basics
+    - id: condition
+      title: "Condition"
+      body: "Use conditioner every time you wash. Leave it on for as long as the product says; the timer can help."
+      timer: true
+      article: wash-day-basics
+    - id: hot-oil
+      title: "Hot oil (twice a month)"
+      body: "If it's a hot oil week, apply it now and follow the product's directions. Otherwise skip this step."
+      optional: true
+      timer: true
+      article: wash-day-basics
+    - id: rinse-dry
+      title: "Rinse and dry"
+      body: "Rinse well and dry gently with a towel."
+    - id: style
+      title: "Style"
+      body: "If you're using heat, put on a heat protectant first and use the lowest temperature that gives you the style you want."
+      article: heat-and-chemical-treatments

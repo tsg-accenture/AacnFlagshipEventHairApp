@@ -1,0 +1,31 @@
+# DRAFT check-in templates. Answer values must match the rules in backend/app/rules/rules_v1.yaml.
+templates:
+  day-3:
+    title: "Day-3 check-in"
+    intro: "Three quick questions about how your style feels."
+    questions:
+      - field: tightness
+        text: "Any tightness or soreness?"
+        options: [[none, "None"], [a_little, "A little"], [hurts, "Yes, it hurts"]]
+      - field: bumps
+        text: "Any bumps or spots along your edges?"
+        options: [[none, "None"], [a_few, "A few"], [lots, "Lots"]]
+      - field: itch
+        text: "Is your scalp itchy?"
+        options: [[none, "No"], [a_little, "A little"], [a_lot, "A lot"]]
+  weekly:
+    title: "Weekly check-in"
+    intro: "A minute to notice how your hair and scalp feel this week."
+    questions:
+      - field: tightness
+        text: "Does your style feel tight?"
+        options: [[none, "No"], [a_little, "A little"], [hurts, "Yes, it hurts"]]
+      - field: soreness
+        text: "Any soreness when you touch your scalp?"
+        options: [[none, "None"], [a_little, "A little"], [hurts, "Yes, it hurts"]]
+      - field: itch
+        text: "Is your scalp itchy?"
+        options: [[none, "No"], [a_little, "A little"], [a_lot, "A lot"]]
+      - field: edges
+        text: "How do your edges feel?"
+        options: [[fine, "Fine"], [not_sure, "Not sure"], [thinner, "Thinner than before"]]

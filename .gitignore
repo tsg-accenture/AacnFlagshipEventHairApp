@@ -1,0 +1,28 @@
+# Secrets: commit only the .env.example files
+.env
+.env.local
+.env*.local
+backend/.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+backend/var/
+
+# Node / Next.js
+node_modules/
+.next/
+frontend/next-env.d.ts
+*.tsbuildinfo
+frontend/playwright-report/
+frontend/test-results/
+frontend/public/mediapipe/
+frontend/public/models/*.tflite
+
+# Evaluation photos are never committed
+evals/photos/*
+!evals/photos/README.md
+
+.DS_Store

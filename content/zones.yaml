@@ -1,0 +1,54 @@
+# DRAFT. The five zones, the questions asked about each, the signs the photo step looks for,
+# and capture tips. Answer values must match backend/app/rules/rules_v1.yaml.
+zones:
+  - id: hairline
+    name: "Hairline and edges"
+    capture: "Pull your hair back if you can. Face a window, hold the phone at forehead height and get the whole front hairline in."
+  - id: left_temple
+    name: "Left temple"
+    capture: "Turn your head to the right. Face the light and hold the phone level with your left temple."
+  - id: right_temple
+    name: "Right temple"
+    capture: "Turn your head to the left. Face the light and hold the phone level with your right temple."
+  - id: crown
+    name: "Crown"
+    capture: "Ask someone to help, or hold the phone above your head and use the timer. Part the hair if you can."
+  - id: nape
+    name: "Nape"
+    capture: "Ask someone to help, or use a mirror behind you. Lift the hair off the back of your neck."
+
+questions:
+  - field: tender
+    text: "Does this area feel tender or sore?"
+    options: [["no", "No"], [a_little, "A little"], ["yes", "Yes"]]
+  - field: change
+    text: "Have you noticed it change lately?"
+    options: [["no", "No"], [not_sure, "Not sure"], ["yes", "Yes"]]
+  - field: itch
+    text: "Is it itchy?"
+    options: [["no", "No"], ["yes", "Yes"]]
+  - field: bumps
+    text: "Any bumps or spots here?"
+    options: [["no", "No"], ["yes", "Yes"]]
+
+# What the photo step can report for each zone. The AI reports visible / not_visible / cant_tell only.
+signs:
+  - id: short_broken_hairs
+    name: "Short, broken hairs"
+    plain: "Hairs that are noticeably shorter than the hair around them, as if snapped."
+  - id: looks_thinner
+    name: "Looks thinner than the hair around it"
+    plain: "More scalp showing here than in the areas next to it."
+  - id: flaking
+    name: "Flaking"
+    plain: "Small white or grey flakes on the scalp or in the hair."
+  - id: build_up
+    name: "Build-up"
+    plain: "Product or residue sitting on the scalp or at the roots."
+  - id: bumps_or_spots
+    name: "Bumps or spots"
+    plain: "Small raised bumps or spots on the scalp."
+
+example_images:
+  status: "pending"
+  note: "Each sign needs a licensed example image on darker skin, reviewed by the advisor. AI-generated images are not acceptable here."
