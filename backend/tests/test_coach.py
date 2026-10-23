@@ -65,8 +65,36 @@ def test_relevant_valid_citations_attach_demo_products(api, monkeypatch):
     assert len(body["demo_products"]["items"]) == 3
     assert body["signpost"] is True
     assert body["professional_guidance"]
+    assert body["action"]
+    assert any(
+        source["article_id"] in {"tight-styles-and-your-edges", "early-changes", "signs-a-style-is-too-tight"}
+        for source in body["sources"]
+    )
+    assert any(link["url"].startswith("https://") for link in body["links"])
     assert body["sources"]
     assert "looser" in body["text"].lower() or "pull" in body["text"].lower()
+
+
+def test_demo_product_prompt_context_is_conditional_and_not_a_promise(api, monkeypatch):
+    monkeypatch.setattr(get_settings(), "DEMO_PRODUCTS_ENABLED", True)
+    captured = {}
+    original = FakeAI.parse
+
+    def capture_parse(self, *, feature, schema, fake=None, instructions="", **kw):
+        if schema is CoachAnswer:
+            captured["instructions"] = instructions
+            return fake()
+        return original(self, feature=feature, schema=schema, fake=fake, instructions=instructions, **kw)
+
+    monkeypatch.setattr(FakeAI, "parse", capture_parse)
+    body = api.post(
+        "/api/v1/coach/ask",
+        json={"question": "My hairline is thinning after protective styles. What should I do?"},
+    ).json()
+    assert body["kind"] == "answer" and "demo_products" in body
+    instructions = captured["instructions"]
+    assert "Do not promise a shelf" in instructions
+    assert "Do not" in instructions and "assert real ownership" in instructions
 
 
 def test_demo_products_are_off_by_default(api):
@@ -146,6 +174,38 @@ def test_history_suppresses_payload_on_non_answer(api, monkeypatch):
     assert "demo_products" not in historical
 
 
+def test_history_keeps_legacy_answer_without_demo_payload(api):
+    db = session_factory()()
+    try:
+        user = db.scalar(select(User))
+        assert user is not None
+        message = CoachMessage(
+            user_id=user.id,
+            question="Legacy question",
+            kind="answer",
+            answer={
+                "kind": "answer",
+                "text": "A saved answer from before the demo shelf.",
+                "action": "Read its source.",
+                "sources": [],
+                "cited": [],
+            },
+            cited_chunk_ids=[],
+        )
+        db.add(message)
+        db.commit()
+        message_id = str(message.id)
+    finally:
+        db.close()
+
+    history = api.get("/api/v1/coach/history").json()
+    legacy = next(row for row in history if row["id"] == message_id)
+    assert legacy["kind"] == "answer"
+    assert legacy["text"] == "A saved answer from before the demo shelf."
+    assert legacy["action"] == "Read its source."
+    assert "demo_products" not in legacy
+
+
 @pytest.mark.parametrize(
     "question, kind",
     [
@@ -154,21 +214,26 @@ def test_history_suppresses_payload_on_non_answer(api, monkeypatch):
         ("I want to kill myself", "support"),
     ],
 )
-def test_triage_paths(api, question, kind):
+def test_triage_paths(api, question, kind, monkeypatch):
+    monkeypatch.setattr(get_settings(), "DEMO_PRODUCTS_ENABLED", True)
     body = api.post("/api/v1/coach/ask", json={"question": question}).json()
     assert body["kind"] == kind
+    assert "demo_products" not in body
     if kind == "support":
         assert "116 123" in body["text"]
 
 
 def test_no_reviewed_answer_when_drafts_excluded(api, monkeypatch):
     monkeypatch.setattr(get_settings(), "LIBRARY_INCLUDE_DRAFTS", False)
+    monkeypatch.setattr(get_settings(), "DEMO_PRODUCTS_ENABLED", True)
     body = api.post("/api/v1/coach/ask", json={"question": "How often should I wash my hair?"}).json()
     assert body["kind"] == "no_reviewed_answer"
     assert body["sources"] == []
+    assert "demo_products" not in body
 
 
 def test_invented_citation_is_rejected(api, monkeypatch):
+    monkeypatch.setattr(get_settings(), "DEMO_PRODUCTS_ENABLED", True)
     original = FakeAI.parse
 
     def bad_parse(self, *, feature, schema, fake=None, **kw):
@@ -179,9 +244,11 @@ def test_invented_citation_is_rejected(api, monkeypatch):
     monkeypatch.setattr(FakeAI, "parse", bad_parse)
     body = api.post("/api/v1/coach/ask", json={"question": "How often should I wash my hair?"}).json()
     assert body["kind"] == "no_reviewed_answer"
+    assert "demo_products" not in body
 
 
 def test_diagnostic_wording_is_rejected(api, monkeypatch):
+    monkeypatch.setattr(get_settings(), "DEMO_PRODUCTS_ENABLED", True)
     original = FakeAI.parse
 
     def diag(self, *, feature, schema, fake=None, **kw):
@@ -193,6 +260,7 @@ def test_diagnostic_wording_is_rejected(api, monkeypatch):
     monkeypatch.setattr(FakeAI, "parse", diag)
     body = api.post("/api/v1/coach/ask", json={"question": "My braids feel tight at the edges"}).json()
     assert body["kind"] == "no_reviewed_answer"
+    assert "demo_products" not in body
 
 
 @pytest.mark.parametrize(

@@ -1,10 +1,12 @@
 # CrownED-001 implementation agent checklist
 
-Status: planning documents aligned; application tasks below are not started.
+Status: implementation and focused automated checks are complete; live-runtime and
+several broader acceptance checks remain outstanding.
 Branch: `CrownED-001/trusted-advice`.
 Read [specification](./spec.md) first, then [implementation plan](./implementation-plan.md).
-Checked boxes below refer only to the documentation alignment audit; unchecked
-boxes are implementation/verification work for the implementation agent.
+Checked execution boxes below reflect work completed and evidence obtained as of
+2026-10-23. Browser response fixtures were mocked for the focused E2E checks;
+they do not establish live OpenAI wording or a configured demo-server journey.
 
 ## 1. Alignment audit against the requested ten steps
 
@@ -53,163 +55,181 @@ successes. Preserve unrelated changes and do not commit or push unless requested
 
 Dependencies: none.
 
-- [ ] Confirm current branch is `CrownED-001/trusted-advice`.
-- [ ] Inspect worktree status and preserve unrelated changes, including any existing frontend instructions.
-- [ ] Read the spec/plan and applicable repository/Next.js instructions before coding.
-- [ ] Inspect current Coach, API/history, types, health cache, prompt, fake AI and test helpers.
-- [ ] Confirm demo backend ownership/configuration before any service restart or environment change.
+- [x] Confirm current branch is `CrownED-001/trusted-advice`.
+- [x] Inspect worktree status and preserve unrelated changes, including any existing frontend instructions.
+- [x] Read the spec/plan and applicable repository/Next.js instructions before coding.
+- [x] Inspect current Coach, API/history, types, health cache, prompt, fake AI and test helpers.
+- [x] Confirm the shared backend was not reconfigured or restarted; its health response reported OpenAI mode and products disabled.
 
-Completion evidence: named branch, scoped file list, no conflicting edits.
+Completion evidence: branch and worktree were inspected; no environment changes or
+service restarts were made. A concurrent commit appeared during implementation;
+the remaining working changes were reviewed and left intact.
 
 ### T1. Define fixture, contract and capability
 
 Dependencies: T0.
 
-- [ ] Add false-default `DEMO_PRODUCTS_ENABLED` and one production-aware effective capability.
-- [ ] Document the false default in the committed environment example, not real secrets/configuration.
-- [ ] Author the three exact fixture entries from R1 with stable IDs and order.
-- [ ] Include shelf version, shelf/item demo markers, disclaimer, descriptions and typed ownership metadata.
-- [ ] Keep all fixture content outside the evidence library and AI-generated text.
-- [ ] Add `demo_products_enabled` to health and corresponding frontend type.
-- [ ] Add optional, backward-compatible typed `CoachReply.demo_products`.
-- [ ] Confirm no migration, dependency or shopping metadata is introduced.
+- [x] Add false-default `DEMO_PRODUCTS_ENABLED` and one production-aware effective capability.
+- [x] Document the false default in the committed environment example, not real secrets/configuration.
+- [x] Author the three exact fixture entries from R1 with stable IDs and order.
+- [x] Include shelf version, shelf/item demo markers, disclaimer, descriptions and typed ownership metadata.
+- [x] Keep all fixture content outside the evidence library and AI-generated text.
+- [x] Add `demo_products_enabled` to health and corresponding frontend type.
+- [x] Add optional, backward-compatible typed `CoachReply.demo_products`.
+- [x] Confirm no migration, dependency or shopping metadata is introduced.
 
-Completion evidence: contract/fixture review and capability tests in T5.
+Completion evidence: exact fixture and capability tests pass in the focused backend
+suite; no schema migration or dependency change was made.
 
 ### T2. Integrate recommendations and guarded product eligibility
 
 Dependencies: T1.
 
-- [ ] Compute potential demo context from trusted retrieved article metadata.
-- [ ] Update prompt wording for optional fictional examples without inventing actual products or ownership.
-- [ ] Retain source-only recommendations, honest off-state limitations and all guards.
-- [ ] Compute final shelf eligibility from validated cited articles, capability and successful answer kind.
-- [ ] Exclude urgent, support, wellbeing-source, out-of-scope, rejected and unavailable/no-answer results.
-- [ ] Allow ordinary professional signposting alongside eligible products.
-- [ ] Attach exactly one server-authored fixture payload only after validation.
-- [ ] Ensure conditional prompt language cannot promise a missing shelf after final validation.
-- [ ] Verify Amara receives tension-reduction recommendations, practical action and when-to-seek-help guidance/links.
-- [ ] Provide an adequately grounded deterministic Amara scenario for tests; inspect runtime FakeAI limitations.
+- [x] Compute potential demo context from trusted retrieved article metadata.
+- [x] Update prompt wording for optional fictional examples without inventing actual products or ownership.
+- [x] Retain source-only recommendations, honest off-state limitations and all guards.
+- [x] Compute final shelf eligibility from validated cited articles, capability and successful answer kind.
+- [x] Exclude urgent, support, wellbeing-source, out-of-scope, rejected and unavailable/no-answer results.
+- [x] Allow ordinary professional signposting alongside eligible products.
+- [x] Attach exactly one server-authored fixture payload only after validation.
+- [x] Ensure conditional prompt language cannot promise a missing shelf after final validation.
+- [ ] Verify Amara receives all required guidance and referral links in an enabled live runtime; deterministic fake/API coverage is not live-model verification.
+- [x] Provide an adequately grounded deterministic Amara scenario for tests; inspect runtime FakeAI limitations.
 
-Completion evidence: positive, negative, grounding and pre/post-eligibility tests.
+Completion evidence: deterministic source-grounded API scenario and eligibility,
+safety, citation-rejection and service-error tests pass. Live-model wording remains
+unverified.
 
 ### T3. Persist and safely serialize history
 
 Dependencies: T2.
 
-- [ ] Save the optional payload with existing answer JSON.
-- [ ] Reuse current gating/serialization for POST and history.
-- [ ] Strip payload when currently disabled, including previously saved shelves.
-- [ ] Strip payload from historical non-answer kinds even if present in stored JSON.
-- [ ] Never mutate persistent JSON during history reads.
-- [ ] Keep older messages without products valid; do not backfill shelves.
-- [ ] Preserve question, date, sources, action, links and correct Demo AI provenance.
+- [x] Save the optional payload with existing answer JSON.
+- [x] Reuse current gating/serialization for POST and history.
+- [x] Strip payload when currently disabled, including previously saved shelves.
+- [x] Strip payload from historical non-answer kinds even if present in stored JSON.
+- [x] Never mutate persistent JSON during history reads.
+- [ ] Add a direct legacy-row test for messages predating the optional payload (new replies without it render normally; no backfill is implemented).
+- [x] Preserve question, date, sources, action, links and correct Demo AI provenance.
 
-Completion evidence: saved-payload, legacy-message, switch-off and non-mutation assertions.
+Completion evidence: saved payload, switch-off suppression, non-answer suppression
+and stored-JSON non-mutation tests pass. A separately constructed legacy-row test
+and live disable/revisit check remain outstanding.
 
 ### T4. Build shared accessible response UI
 
 Dependencies: T1, T2, T3.
 
-- [ ] Add successful-answer heading `Recommendations` and exact non-clinical explanation.
-- [ ] Add `Next steps` around the existing action.
-- [ ] Label professional guidance `When to seek professional support`; preserve guidance text and links.
-- [ ] Retain clickable article/external sources, truthful draft badges and recommendation-only provenance.
-- [ ] Render shelf after recommendations, action, professional support and sources.
-- [ ] Use exact heading `Example products — demonstration only`.
-- [ ] Display exact disclaimer before three cards.
-- [ ] Show three `Demo product` labels and first-two exact `black owned` badges.
-- [ ] Use semantic headings/lists, stable IDs, existing UI tokens and neutral icons/placeholders.
-- [ ] Add no external product images, purchase links, reviews, ratings or shop buttons.
-- [ ] Gate cached/latest/history shelves on current successful capability and valid optional payload.
-- [ ] Refetch capability/history on load/revisit instead of relying on five-minute cached enablement.
-- [ ] Keep capability loading/error disabled for display, with standard explicit error handling.
-- [ ] Check phone/tablet/laptop layouts and existing themes, text-size and reading-font settings.
+- [x] Add successful-answer heading `Recommendations` and exact non-clinical explanation.
+- [x] Add `Next steps` around the existing action.
+- [x] Label professional guidance `When to seek professional support`; preserve guidance text and links.
+- [x] Retain clickable article/external sources, truthful draft badges and recommendation-only provenance.
+- [x] Render shelf after recommendations, action, professional support and sources.
+- [x] Use exact heading `Example products — demonstration only`.
+- [x] Display exact disclaimer before three cards.
+- [x] Show three `Demo product` labels and first-two exact `black owned` badges.
+- [x] Use semantic headings/lists, stable IDs, existing UI tokens and neutral icons/placeholders.
+- [x] Add no external product images, purchase links, reviews, ratings or shop buttons.
+- [x] Gate cached/latest/history shelves on current successful capability and valid optional payload.
+- [x] Refetch capability/history on load/revisit instead of relying on five-minute cached enablement.
+- [x] Keep capability loading/error disabled for display, with standard explicit error handling.
+- [ ] Manually check existing themes, text-size and reading-font settings; responsive axe/overflow checks passed at phone/tablet/laptop sizes.
 
-Completion evidence: browser assertions and manual visual/accessibility review.
+Completion evidence: focused mocked-response Playwright checks, including axe and
+overflow assertions, pass on phone, tablet and laptop. Manual visual and preference
+testing remains outstanding.
 
 ### T5. Extend backend tests
 
 Dependencies: T2, T3; can proceed independently of T4.
 
-- [ ] Assert exact three entries, IDs, order, names, descriptions, demo markers and badge metadata.
-- [ ] Assert default-off, explicit-on, production effective-off and fake/real mode independence.
-- [ ] Assert eligible source-based results and ineligible unrelated/wellbeing-source results.
-- [ ] Assert urgent, support, out-of-scope, no-answer, empty/rejected output and unavailable AI have no products.
-- [ ] Assert invented citations and diagnostic wording still fail safely.
-- [ ] Assert ordinary signposting preserves relevant sources, action and referral links.
-- [ ] Assert prompt context does not imply ungrounded brands/ownership or unconditional shelf availability.
-- [ ] Assert stored payload fidelity and history without products for legacy rows.
-- [ ] Assert disable-after-save strips API payload without changing stored JSON.
-- [ ] Assert historically stored non-answer payload is suppressed.
-- [ ] Reuse existing tests/fake hooks and isolated fixture database; no live API spend.
+- [x] Assert exact three entries, IDs, order, names, descriptions, demo markers and badge metadata.
+- [x] Assert default-off, explicit-on, production effective-off and fake/real mode independence.
+- [x] Assert eligible source-based results and ineligible unrelated/wellbeing-source results.
+- [x] Assert urgent, support, out-of-scope, no-answer, rejected output and unavailable AI have no products.
+- [x] Assert invented citations and diagnostic wording still fail safely.
+- [ ] Assert ordinary signposting preserves relevant sources, action and referral links together (the integration test covers signposting, source and guidance; explicit referral-link assertion is outstanding).
+- [ ] Add a prompt-contract assertion that context does not imply ungrounded brands/ownership or an unconditional shelf.
+- [x] Assert stored payload persistence and history suppression when disabled.
+- [ ] Add a direct legacy-row-without-payload history assertion.
+- [x] Assert disable-after-save strips API payload without changing stored JSON.
+- [x] Assert historically stored non-answer payload is suppressed.
+- [x] Reuse existing tests/fake hooks and isolated fixture database; no live API spend.
 
-Completion evidence: focused backend command, pass/fail counts, and any warnings.
+Completion evidence: `cd backend && uv run pytest tests/test_coach.py
+tests/test_ai_mode.py tests/test_openai_contract.py -q` — 40 passed, 0 failed.
+The outstanding assertions above are not covered by this result.
 
 ### T6. Extend browser/end-to-end tests
 
 Dependencies: T4; use T5's API coverage for real server-off persistence guarantees.
 
-- [ ] Add focused `trusted recommendations` test(s) to existing flow suite.
-- [ ] Use isolated account and explicitly configured fake-AI demo backend with seeded library.
-- [ ] Test canonical concern and a paraphrase without exact-question special casing.
-- [ ] Assert `Recommendations`, exact explanation, relevant visible sources and retained draft status.
-- [ ] Assert useful `Next steps` and when-to-seek-help guidance with GP/specialist links.
-- [ ] Assert exact product heading/disclaimer, three cards, three demo labels and two exact badges.
-- [ ] Assert source/professional-support sections precede the shelf in DOM order.
-- [ ] Assert no unsupported treatment claims, contradictory refusal or shopping actions.
-- [ ] Test reload, away/back navigation, legacy history and repeated submissions: one shelf per answer.
-- [ ] Test capability disabled after cached product response, including cached latest reply.
-- [ ] Test negative response kinds and capability loading/failure with explicit error UI.
-- [ ] Run across configured phone, tablet and laptop projects without horizontal overflow.
+- [x] Add focused `trusted recommendations` test(s) to existing flow suite.
+- [ ] Use isolated account and explicitly configured fake-AI demo backend with seeded library for E2E integration (the new E2E response routes are mocked).
+- [ ] Test the canonical concern and a paraphrase against the running fake-AI backend without exact-question special casing (the backend test covers the canonical prompt; browser mock tests are not runtime-AI evidence).
+- [x] Assert `Recommendations`, exact explanation, relevant visible sources and retained draft status in the controlled UI flow.
+- [x] Assert `Next steps` and when-to-seek-help guidance with GP links in the controlled UI flow.
+- [x] Assert exact product heading/disclaimer, three cards, three demo labels and two exact badges.
+- [x] Assert recommendation/support sections precede the shelf in DOM order.
+- [ ] Add explicit browser assertions for absence of unsupported treatment claims, contradictory refusal and shopping actions.
+- [ ] Verify live reload/revisit, genuine legacy history, and exactly one shelf per stored answer (the mocked flow covers reload and repeat submissions only).
+- [x] Test capability disabled after a cached product response, including the latest reply.
+- [ ] Add browser coverage for negative response kinds and capability loading/failure error UI.
+- [x] Run across configured phone, tablet and laptop projects without horizontal overflow.
 - [ ] Check light/dark/high-contrast plus larger text and easier-reading font.
-- [ ] Reuse axe and console-error helpers; distinguish route mocks from unmocked integration evidence.
+- [x] Reuse axe and console-error helpers; distinguish route mocks from unmocked integration evidence.
 
-Completion evidence: selected Playwright results, accessibility and layout checks.
+Completion evidence: `cd frontend && npm run test:e2e -- --grep "trusted
+recommendations"` — 6 passed across phone, tablet and laptop, 0 failed. The
+positive and capability-off API routes were controlled mocks; this is not an
+unmocked AI integration run.
 
 ### T7. Run verification and demonstrate
 
 Dependencies: T5, T6.
 
-- [ ] Run focused backend tests from P5, including other touched test files if needed.
-- [ ] Run `npm run check`.
-- [ ] Run `npm run test:e2e -- --grep "trusted recommendations"` under the documented isolated demo configuration.
-- [ ] Report failures and unrelated baseline warnings accurately; fix only related regressions.
-- [ ] Manually submit canonical prompt and paraphrase in running app.
-- [ ] Confirm source relevance, next steps, professional guidance and absence of contradictory refusal.
+- [x] Run focused backend tests from P5, including other touched test files if needed.
+- [x] Run `npm run check`.
+- [x] Run `npm run test:e2e -- --grep "trusted recommendations"`; Playwright used the controlled routes documented in T6.
+- [x] Report failures and unrelated baseline warnings accurately; missing Chromium was installed, then all selected browser checks passed.
+- [ ] Manually submit the canonical prompt and a paraphrase in an enabled demo runtime.
+- [ ] Confirm source relevance, next steps, professional guidance and absence of contradictory refusal in the enabled live runtime.
 - [ ] Verify configured runtime AI path; do not claim real-AI quality from fake responses.
 - [ ] With authorization, disable demo flag, restart, reload/revisit and confirm old shelves disappear.
 - [ ] Confirm old records remain stored and re-enable only the agreed demo configuration.
-- [ ] Review final diff for unrelated changes and secrets.
+- [x] Review final diff scope and whitespace; no environment files or dependencies were changed.
 
-Completion evidence: commands/results, manual observations and any unresolved blockers.
+Completion evidence: focused commands and results are recorded in T5-T6. Live
+manual testing was not performed because the shared backend was configured for
+OpenAI and reported the product capability disabled; its configuration was not
+changed.
 
 ### T8. Document and hand off
 
 Dependencies: T7.
 
-- [ ] Update README to distinguish demo shelf from still-future real catalogue.
-- [ ] Document exact switch, default-off, production-off, restart/reload and AI-mode independence.
-- [ ] Document canonical prompt, fictional products/ownership labels and no medical/product endorsement.
-- [ ] Retain draft disclosures and existing production restrictions.
-- [ ] Complete release gates below with evidence.
-- [ ] Provide concise implementation summary, test results, limitations and remaining blockers.
-- [ ] Do not claim 10/10 or check unverified items; do not commit/push without instruction.
+- [x] Update README to distinguish demo shelf from still-future real catalogue.
+- [x] Document exact switch, default-off, production-off, restart/reload and AI-mode independence.
+- [x] Document canonical prompt, fictional products/ownership labels and no medical/product endorsement.
+- [x] Retain draft disclosures and existing production restrictions.
+- [x] Update release gates below with the evidence currently available and explicit limitations.
+- [x] Provide concise implementation summary, test results, limitations and remaining blockers.
+- [x] Do not claim 10/10 or check unverified items; do not commit/push without instruction.
 
 ## 3. Final acceptance checklist
 
 | Gate | Verification | Status |
 |---|---|---|
-| AC1 | Amara submits concern and obtains successful relevant answer | [ ] |
-| AC2 | `Recommendations` and exact non-clinical explanation | [ ] |
-| AC3 | Relevant visible/clickable article and external sources | [ ] |
-| AC4 | Exactly three fictional cards in stable order | [ ] |
-| AC5 | First two exact `black owned` badges; all three `Demo product` labels | [ ] |
-| AC6 | Exact fictional products/ownership disclaimer | [ ] |
-| AC7 | Useful tension recommendations, next steps and when-to-seek-help guidance/links | [ ] |
-| AC8 | No contradictory refusal, fabricated treatment/ownership claims or shopping functionality | [ ] |
-| AC9 | Mobile, refresh/revisit, saved/legacy history and disabling work | [ ] |
-| AC10 | Existing safety handling and focused automated validation pass | [ ] |
+| AC1 | Amara concern yields a successful, relevant answer | Partial — deterministic backend test passes; enabled live runtime not tested |
+| AC2 | `Recommendations` and exact non-clinical explanation | Verified in focused UI test |
+| AC3 | Relevant visible/clickable article and external sources | Verified in controlled UI test, including draft disclosure |
+| AC4 | Exactly three fictional cards in stable order | Verified in controlled UI test |
+| AC5 | First two exact `black owned` badges; all three `Demo product` labels | Verified in controlled UI test |
+| AC6 | Exact fictional products/ownership disclaimer | Verified in controlled UI test |
+| AC7 | Useful tension recommendations, next steps and when-to-seek-help guidance/links | Partial — deterministic API and controlled UI coverage; live answer not tested |
+| AC8 | No contradictory refusal, fabricated treatment/ownership claims or shopping functionality | Partial — fixed fixture and prompt are implemented; explicit negative-claim assertions remain |
+| AC9 | Mobile, refresh/revisit, saved/legacy history and disabling work | Partial — responsive mocked flow and backend suppression tests pass; live revisit and legacy-row test remain |
+| AC10 | Existing safety handling and focused automated validation pass | Verified by 40 backend tests, frontend check and 6 responsive E2E tests |
 
 ## 4. Implementation handoff evidence to supply
 
@@ -217,13 +237,14 @@ Supply the following in the final implementation report:
 
 | Evidence | Required detail |
 |---|---|
-| Scope | Branch and files changed; migration/dependency status |
-| Configuration | Effective demo setting, AI mode, restart/reload behaviour; no secrets |
-| Backend | Exact command, pass/fail counts, warnings |
-| Frontend | Exact check command and result |
-| Browser | Exact selector/command, projects/themes covered, results |
-| Manual | Prompt/paraphrase, output sections, source relevance, disable/revisit outcome |
-| Acceptance | AC1-AC10 results with explicit blockers for unverified items |
+| Scope | Branch: `CrownED-001/trusted-advice`; implementation and focused-test files changed; no migration/dependency changes |
+| Configuration | Flag defaults off and is production-off; independent of AI mode; restart/reload behavior documented. Shared runtime reported OpenAI and products disabled; no secrets or runtime settings changed |
+| Backend | `uv run pytest tests/test_coach.py tests/test_ai_mode.py tests/test_openai_contract.py -q` — 40 passed |
+| Frontend | `npm run check` — passed (`tsc --noEmit`; `Effects OK`) |
+| Browser | `npm run test:e2e -- --grep "trusted recommendations"` — 6 passed, phone/tablet/laptop; route responses mocked; themes not covered |
+| Manual | Enabled canonical/paraphrase flow and live switch-off/revisit not performed; shared service was left unchanged |
+| Acceptance | See AC1-AC10 above; outstanding live runtime, theme, and additional legacy/negative assertions remain |
 
-Leave implementation boxes unchecked until actual execution. This documentation
-audit confirms alignment, not delivery of the application feature.
+Checked items represent completed implementation or executed evidence, not
+clinical validation or production readiness. Remaining unchecked items are
+explicit follow-up work; the current evidence does not establish a 10/10 result.

@@ -176,19 +176,26 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
+function hasExactlyKeys(value: Record<string, unknown>, keys: string[]): boolean {
+  const actual = Object.keys(value).sort()
+  const expected = [...keys].sort()
+  return actual.length === expected.length && actual.every((key, i) => key === expected[i])
+}
+
 function validDemoProducts(value: unknown): value is DemoProducts {
-  if (!isRecord(value) || value.version !== 'v1' || value.is_demo !== true
+  if (!isRecord(value) || !hasExactlyKeys(value, ['version', 'is_demo', 'disclaimer', 'items'])
+    || value.version !== 'v1' || value.is_demo !== true
     || value.disclaimer !== PRODUCT_DISCLAIMER || !Array.isArray(value.items)
     || value.items.length !== EXPECTED_PRODUCTS.length) return false
   return value.items.every((item, i) => {
-      if (!isRecord(item)) return false
-      const expected = EXPECTED_PRODUCTS[i]
-      return item.id === expected[0]
-        && item.name === expected[1]
-        && item.brand === expected[2]
-        && item.description === expected[3]
-        && item.is_demo === true
-        && item.ownership_badge === expected[4]
+    if (!isRecord(item) || !hasExactlyKeys(item, ['id', 'name', 'brand', 'description', 'is_demo', 'ownership_badge'])) return false
+    const expected = EXPECTED_PRODUCTS[i]
+    return item.id === expected[0]
+      && item.name === expected[1]
+      && item.brand === expected[2]
+      && item.description === expected[3]
+      && item.is_demo === true
+      && item.ownership_badge === expected[4]
   })
 }
 
@@ -270,7 +277,7 @@ function ProductShelf({ id, products }: { id: string; products: DemoProducts }) 
         {products.items.map((product) => (
           <li key={product.id}>
             <Card as="article" className="h-full p-4">
-              <p className="text-[0.8rem] font-semibold uppercase tracking-wide text-muted">Demo product</p>
+              <p className="text-[0.8rem] font-semibold tracking-wide text-muted">Demo product</p>
               <h4 className="mt-2 font-semibold">{product.name}</h4>
               <p className="mt-1 text-[0.92rem] text-muted">{product.brand}</p>
               <p className="mt-2">{product.description}</p>

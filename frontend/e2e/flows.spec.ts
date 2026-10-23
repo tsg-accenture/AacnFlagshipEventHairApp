@@ -123,12 +123,19 @@ test('trusted recommendations render in a safe, ordered product shelf', async ({
   await expect(reply.getByText(demoProducts.disclaimer)).toBeVisible()
   await expect(reply.getByText('Demo product', { exact: true })).toHaveCount(3)
   await expect(reply.getByText('black owned', { exact: true })).toHaveCount(2)
+  await expect(reply).not.toContainText(/can't suggest|cannot suggest|products are unavailable/i)
+  await expect(reply).not.toContainText(/treats hair loss|restores? hairlines?|prevents? hair loss/i)
+  await expect(reply.getByRole('link', { name: /buy|shop|purchase/i })).toHaveCount(0)
+  await expect(reply.getByRole('button', { name: /buy|shop|purchase/i })).toHaveCount(0)
   const orderedSections = await reply.locator('h3, h4').allTextContents()
   expect(orderedSections).toEqual([
     'Recommendations',
     'Next steps',
     'When to seek professional support',
     'Example products — demonstration only',
+    'Gentle Cleanse Shampoo',
+    'Soft Touch Conditioner',
+    'Lightweight Moisture Spray',
   ])
   await expect(reply.getByText('Sources for these recommendations')).toBeVisible()
   await axe(page, 'trusted recommendations')
@@ -166,6 +173,108 @@ test('trusted recommendations stay hidden when current capability is off', async
   await expect(page.getByRole('heading', { name: 'Recommendations' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Example products — demonstration only' })).toHaveCount(0)
   await expect(page.getByText('General hair-care recommendations, not clinical advice or a diagnosis.')).toBeVisible()
+})
+
+test('trusted recommendations remain readable with accessibility preferences', async ({ page }) => {
+  let history: Record<string, unknown>[] = []
+  await page.route('**/api/v1/health', (route) => route.fulfill({ json: healthResponse(true) }))
+  await page.route('**/api/v1/coach/history', (route) => route.fulfill({ json: history }))
+  await page.route('**/api/v1/coach/ask', async (route) => {
+    const request = route.request().postDataJSON() as { question: string }
+    const answer = {
+      id: 'preference-reply',
+      created_at: new Date().toISOString(),
+      question: request.question,
+      kind: 'answer',
+      text: 'Choose looser styles to reduce tension. Contact your GP if thinning continues.',
+      action: 'Ask your stylist for less tension.',
+      signpost: true,
+      professional_guidance: 'If thinning continues or worries you, contact your GP.',
+      links: [{ name: 'Find a GP', url: 'https://www.nhs.uk/service-search/find-a-gp' }],
+      sources: [{
+        article_id: 'tight-styles-and-your-edges',
+        title: 'Tight styles and your edges',
+        sources: [{ name: 'British Association of Dermatologists', url: 'https://www.skinhealthinfo.org.uk/condition/traction-alopecia' }],
+        status: 'draft',
+        reviewer: null,
+        review_date: null,
+      }],
+      demo_ai: true,
+      demo_products: demoProducts,
+    }
+    history = [answer]
+    await route.fulfill({ json: answer })
+  })
+
+  await register(page)
+  await page.goto('/ask')
+  await page.getByLabel('Your question').fill('My hairline is thinning after braids.')
+  await page.getByRole('button', { name: 'Ask', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Example products — demonstration only' })).toBeVisible()
+
+  await page.goto('/settings')
+  await page.getByRole('button', { name: 'Light', exact: true }).click()
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
+  await page.getByRole('button', { name: 'Dark', exact: true }).click()
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+  await page.getByRole('button', { name: 'Match my device', exact: true }).click()
+  await expect(page.locator('html')).not.toHaveAttribute('data-theme')
+  await page.getByRole('button', { name: 'High contrast', exact: true }).click()
+  await expect(page.locator('html')).toHaveAttribute('data-contrast', 'high')
+  await page.getByRole('button', { name: 'Larger', exact: true }).click()
+  await expect(page.locator('html')).toHaveAttribute('data-text', 'larger')
+  await page.getByRole('button', { name: 'Easier to read (Atkinson Hyperlegible)', exact: true }).click()
+  await expect(page.locator('html')).toHaveAttribute('data-font', 'readable')
+
+  await page.goto('/ask')
+  await expect(page.getByRole('heading', { name: 'Example products — demonstration only' })).toBeVisible()
+  await expect(page.getByText('black owned', { exact: true })).toHaveCount(2)
+  await axe(page, 'trusted recommendations with accessibility preferences')
+})
+
+test('trusted recommendations stay suppressed for negative answers and failed health', async ({ page }) => {
+  await page.route('**/api/v1/health', (route) => route.fulfill({
+    status: 503,
+    json: { detail: { message: 'Health capability is temporarily unavailable.' } },
+  }))
+  await page.route('**/api/v1/coach/history', (route) => route.fulfill({ json: [] }))
+  await page.route('**/api/v1/coach/ask', async (route) => {
+    const { question } = route.request().postDataJSON() as { question: string }
+    const kind = question.includes('urgent') ? 'see_someone_now'
+      : question.includes('support') ? 'support' : 'out_of_scope'
+    await route.fulfill({
+      json: {
+        id: `negative-${kind}`,
+        created_at: new Date().toISOString(),
+        question,
+        kind,
+        text: 'This response needs no product shelf.',
+        action: 'Contact a professional if needed.',
+        signpost: kind === 'see_someone_now',
+        links: [],
+        sources: [],
+        demo_ai: true,
+        demo_products: demoProducts,
+      },
+    })
+  })
+
+  await register(page)
+  await page.goto('/ask')
+  await expect(page.getByRole('alert').filter({ hasText: 'Health capability is temporarily unavailable.' })).toBeVisible()
+  const textarea = page.getByLabel('Your question')
+  for (const question of [
+    'urgent hair concern',
+    'wellbeing support concern',
+    'an out of scope question',
+  ]) {
+    await textarea.fill(question)
+    await page.getByRole('button', { name: 'Ask', exact: true }).click()
+    await expect(page.getByText('This response needs no product shelf.')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Recommendations' })).toHaveCount(0)
+    await expect(page.getByRole('heading', { name: 'Example products — demonstration only' })).toHaveCount(0)
+    await expect(page.getByRole('article').filter({ hasText: question })).toBeVisible()
+  }
 })
 
 test('welcome page', async ({ page }) => {

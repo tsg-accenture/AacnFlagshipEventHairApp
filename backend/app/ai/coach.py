@@ -108,10 +108,12 @@ def ask(db: Session, ai: Any, question: str) -> dict:
     )
     if demo_products_might_be_available:
         text += (
-            "\n\nTrusted demonstration context: the server may attach fictional "
-            "example products only if the final answer cites an eligible article. "
-            "Do not promise that examples will appear. If you mention examples, "
-            "make clear they are fictional, not real product recommendations."
+            "\n\nTrusted demonstration context: separate server-authored fictional "
+            "product examples may be displayed only if final citation validation "
+            "allows them. Keep this answer focused on source-grounded hair-care "
+            "guidance. Do not promise a shelf, discuss product examples, refuse to "
+            "provide examples, name real brands or assert real ownership. The UI "
+            "labels any displayed examples as fictional."
         )
 
     def fake() -> CoachAnswer:
@@ -132,8 +134,6 @@ def ask(db: Session, ai: Any, question: str) -> dict:
                 answer_parts.append("Constant pulling can affect the hairline, so choose looser styles and avoid extra tension.")
             if includes_early_changes:
                 answer_parts.append("Ask your stylist to check for changes.")
-            if demo_products_might_be_available:
-                answer_parts.append("Any demo examples shown are fictional.")
             return CoachAnswer(
                 answer=" ".join(answer_parts),
                 cited_ids=cited_ids,
