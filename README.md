@@ -92,6 +92,31 @@ Go to <http://localhost:3000> and choose **Get started**. You'll create an accou
 - **Get checked:** download a care pack PDF. **Stylist note:** tick lines and write a note.
 - **Settings:** try dark mode, high contrast, map patterns, larger text and the easier-to-read font.
 
+### Trusted recommendations demonstration
+
+The optional `DEMO_PRODUCTS_ENABLED` backend setting defaults to `false`. For a
+non-production demonstration, set `DEMO_PRODUCTS_ENABLED=true` in `backend/.env`
+and restart the backend. This is independent of `AI_MODE`: Demo AI does not turn
+the shelf on automatically, and OpenAI does not turn it off. The shelf remains
+effectively disabled whenever `APP_ENV=production`, even if the raw setting is
+true.
+
+Try: “My hairline is thinning after wearing protective styles. What should I do,
+when should I seek professional help, and can you suggest three Black owned
+products?” A paraphrase without the product request is also supported. Products
+appear only beside a successful answer grounded in the relevant cited library
+articles. Ordinary professional signposting can appear with them; urgent,
+wellbeing-support and unsuccessful answers cannot.
+
+The cards are fixed fictional examples. Their `black owned` labels are UI
+demonstrations, not verified business facts or real ownership claims. The products
+are not treatments, clinical advice, endorsements or individually suitable
+recommendations. There are no prices or purchase links. The actual product
+catalogue and ownership verification remain future work. Changing the setting
+requires a backend restart; after disabling it, reload or revisit Ask so the
+current health capability and history are fetched again. The shelf is hidden
+while capability status is loading or unavailable.
+
 ---
 
 ## Use your OpenAI key

@@ -10,10 +10,12 @@ from sqlalchemy.orm import Session
 
 from app.ai import coach as coach_ai
 from app.api.deps import ai_for_user
+from app.core.config import get_settings
 from app.core.db import get_db
 from app.core.security import current_user
 from app.library import citable_statuses
 from app.models import CoachMessage, LibraryArticle, User
+from app.services.demo_products import serialize_coach_answer
 
 router = APIRouter()
 
@@ -53,13 +55,27 @@ def ask(body: AskIn, db: Session = Depends(get_db), user: User = Depends(current
     )
     db.add(msg)
     db.commit()
+    visible_result = serialize_coach_answer(
+        result,
+        kind=msg.kind,
+        enabled=get_settings().demo_products_enabled,
+    )
     return {"id": str(msg.id), "created_at": msg.created_at.isoformat(), "question": msg.question,
-            "demo_ai": bool(getattr(ai, "is_fake", False)), **result}
+            "demo_ai": bool(getattr(ai, "is_fake", False)), **visible_result}
 
 
 @router.get("/coach/history")
 def history(limit: int = Query(30, ge=1, le=100), db: Session = Depends(get_db), user: User = Depends(current_user)) -> list[dict]:
     rows = db.scalars(select(CoachMessage).where(CoachMessage.user_id == user.id).order_by(CoachMessage.created_at.desc()).limit(limit)).all()
     # demo_ai is derived from the stored model name, so past Demo AI answers keep their label.
-    return [{"id": str(m.id), "created_at": m.created_at.isoformat(), "question": m.question,
-             "demo_ai": m.model == "fake", **m.answer} for m in rows]
+    enabled = get_settings().demo_products_enabled
+    return [
+        {
+            "id": str(m.id),
+            "created_at": m.created_at.isoformat(),
+            "question": m.question,
+            "demo_ai": m.model == "fake",
+            **serialize_coach_answer(m.answer, kind=m.kind, enabled=enabled),
+        }
+        for m in rows
+    ]

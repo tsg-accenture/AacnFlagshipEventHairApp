@@ -19,6 +19,7 @@ os.environ.update({
     "SESSION_SECRET": "test-secret-0123456789-abcdefghijklmnop",
     "SAFETY_ID_SALT": "test-salt",
     "LIBRARY_INCLUDE_DRAFTS": "true",
+    "DEMO_PRODUCTS_ENABLED": "false",
     "STORAGE_DIR": str(TMP / "photos"),
     "AI_RATE_LIMIT_PER_MINUTE": "1000",
 })

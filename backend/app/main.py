@@ -166,4 +166,5 @@ def health(db: Session = Depends(get_db)) -> dict:
         "rules_version": rules.version,
         "rules_status": rules.status,
         "library_includes_drafts": s.LIBRARY_INCLUDE_DRAFTS,
+        "demo_products_enabled": s.demo_products_enabled,
     }

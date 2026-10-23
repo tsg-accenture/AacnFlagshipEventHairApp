@@ -1,9 +1,18 @@
 import pytest
+from sqlalchemy import select
 
 from app.ai import guard
 from app.ai.coach import CoachAnswer
 from app.ai.fake import FakeAI
 from app.core.config import get_settings
+from app.core.db import session_factory
+from app.models import CoachMessage, User
+from app.services.demo_products import (
+    DISCLAIMER,
+    demo_products_payload,
+    eligible_for_demo_products,
+    serialize_coach_answer,
+)
 
 
 def test_answer_cites_library(api):
@@ -17,6 +26,124 @@ def test_answer_cites_library(api):
     hist = api.get("/api/v1/coach/history").json()
     assert hist[0]["question"].startswith("How tight")
     assert hist[0]["demo_ai"] is True  # past Demo AI answers keep their label
+
+
+def test_demo_products_fixture_is_exact_and_independent():
+    payload = demo_products_payload()
+    assert payload["version"] == "v1" and payload["is_demo"] is True
+    assert payload["disclaimer"] == DISCLAIMER
+    assert [item["id"] for item in payload["items"]] == [
+        "demo-gentle-cleanse",
+        "demo-soft-touch",
+        "demo-lightweight-moisture",
+    ]
+    assert [(item["name"], item["brand"], item["description"], item["ownership_badge"]) for item in payload["items"]] == [
+        ("Gentle Cleanse Shampoo", "Demo Crown Care A", "Fictional example of a shampoo for routine cleansing.", "black owned"),
+        ("Soft Touch Conditioner", "Demo Crown Care B", "Fictional example of a rinse-out conditioner for a regular wash routine.", "black owned"),
+        ("Lightweight Moisture Spray", "Demo Crown Care C", "Fictional example of a lightweight spray for a general moisture routine.", None),
+    ]
+    assert all(item["is_demo"] is True for item in payload["items"])
+    payload["items"].clear()
+    assert len(demo_products_payload()["items"]) == 3
+
+
+def test_relevant_valid_citations_attach_demo_products(api, monkeypatch):
+    monkeypatch.setattr(get_settings(), "DEMO_PRODUCTS_ENABLED", True)
+    response = api.post(
+        "/api/v1/coach/ask",
+        json={
+            "question": (
+                "My hairline is thinning after wearing protective styles. What should I do, when should I seek "
+                "professional help, and can you suggest three Black owned products?"
+            )
+        },
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["kind"] == "answer"
+    assert body["demo_products"]["disclaimer"] == DISCLAIMER
+    assert len(body["demo_products"]["items"]) == 3
+    assert body["signpost"] is True
+    assert body["professional_guidance"]
+    assert body["sources"]
+    assert "looser" in body["text"].lower() or "pull" in body["text"].lower()
+
+
+def test_demo_products_are_off_by_default(api):
+    body = api.post(
+        "/api/v1/coach/ask",
+        json={"question": "My hairline is thinning after protective styles. What should I do?"},
+    ).json()
+    assert body["kind"] == "answer"
+    assert "demo_products" not in body
+
+
+def test_demo_products_are_suppressed_after_disable_without_mutating_history(api, monkeypatch):
+    settings = get_settings()
+    monkeypatch.setattr(settings, "DEMO_PRODUCTS_ENABLED", True)
+    body = api.post(
+        "/api/v1/coach/ask",
+        json={"question": "My hairline is thinning after protective styles. What should I do?"},
+    ).json()
+    assert "demo_products" in body
+
+    db = session_factory()()
+    try:
+        message = db.scalar(select(CoachMessage).order_by(CoachMessage.created_at.desc()))
+        assert message is not None
+        stored_answer = dict(message.answer)
+        assert "demo_products" in stored_answer
+        message_uuid = message.id
+        message_id = str(message_uuid)
+    finally:
+        db.close()
+
+    monkeypatch.setattr(settings, "DEMO_PRODUCTS_ENABLED", False)
+    history = api.get("/api/v1/coach/history").json()
+    saved = next(row for row in history if row["id"] == message_id)
+    assert "demo_products" not in saved
+
+    db = session_factory()()
+    try:
+        unchanged = db.scalar(select(CoachMessage).where(CoachMessage.id == message_uuid))
+        assert unchanged is not None and unchanged.answer == stored_answer
+    finally:
+        db.close()
+
+
+def test_demo_products_require_effective_answer_and_citations():
+    relevant = {"tight-styles-and-your-edges"}
+    assert eligible_for_demo_products(kind="answer", cited_article_ids=relevant, enabled=True)
+    assert not eligible_for_demo_products(kind="answer", cited_article_ids=set(), enabled=True)
+    assert not eligible_for_demo_products(kind="answer", cited_article_ids=relevant | {"hair-loss-and-how-you-feel"}, enabled=True)
+    assert not eligible_for_demo_products(kind="support", cited_article_ids=relevant, enabled=True)
+    assert not eligible_for_demo_products(kind="answer", cited_article_ids=relevant, enabled=False)
+
+
+def test_history_suppresses_payload_on_non_answer(api, monkeypatch):
+    db = session_factory()()
+    try:
+        user = db.scalar(select(User))
+        assert user is not None
+        saved = demo_products_payload()
+        message = CoachMessage(
+            user_id=user.id,
+            question="Historical support response",
+            kind="support",
+            answer={"kind": "support", "text": "Support response.", "demo_products": saved},
+            cited_chunk_ids=[],
+        )
+        db.add(message)
+        db.commit()
+        message_id = str(message.id)
+    finally:
+        db.close()
+
+    monkeypatch.setattr(get_settings(), "DEMO_PRODUCTS_ENABLED", True)
+    history = api.get("/api/v1/coach/history").json()
+    historical = next(row for row in history if row["id"] == message_id)
+    assert historical["kind"] == "support"
+    assert "demo_products" not in historical
 
 
 @pytest.mark.parametrize(
@@ -46,7 +173,7 @@ def test_invented_citation_is_rejected(api, monkeypatch):
 
     def bad_parse(self, *, feature, schema, fake=None, **kw):
         if schema is CoachAnswer:
-            return CoachAnswer(answer="Wash weekly.", cited_ids=[999999], action="Wash.", signpost=False)
+            return CoachAnswer(answer="Wash weekly.", cited_ids=[999999], action="Wash.", signpost=False, professional_guidance="")
         return original(self, feature=feature, schema=schema, fake=fake, **kw)
 
     monkeypatch.setattr(FakeAI, "parse", bad_parse)
@@ -60,7 +187,7 @@ def test_diagnostic_wording_is_rejected(api, monkeypatch):
     def diag(self, *, feature, schema, fake=None, **kw):
         if schema is CoachAnswer:
             got = fake()
-            return CoachAnswer(answer="You have traction alopecia.", cited_ids=got.cited_ids, action="See a GP.", signpost=True)
+            return CoachAnswer(answer="You have traction alopecia.", cited_ids=got.cited_ids, action="See a GP.", signpost=True, professional_guidance="")
         return original(self, feature=feature, schema=schema, fake=fake, **kw)
 
     monkeypatch.setattr(FakeAI, "parse", diag)

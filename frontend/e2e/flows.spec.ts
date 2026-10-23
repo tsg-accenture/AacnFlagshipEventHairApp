@@ -57,6 +57,117 @@ async function register(page: Page) {
   await expect(page).toHaveURL(/\/privacy\/receipt/)
 }
 
+const demoProducts = {
+  version: 'v1',
+  is_demo: true,
+  disclaimer: 'Fictional products and ownership labels for demonstration only. These are not real brands or treatments for hair loss.',
+  items: [
+    { id: 'demo-gentle-cleanse', name: 'Gentle Cleanse Shampoo', brand: 'Demo Crown Care A', description: 'Fictional example of a shampoo for routine cleansing.', is_demo: true, ownership_badge: 'black owned' },
+    { id: 'demo-soft-touch', name: 'Soft Touch Conditioner', brand: 'Demo Crown Care B', description: 'Fictional example of a rinse-out conditioner for a regular wash routine.', is_demo: true, ownership_badge: 'black owned' },
+    { id: 'demo-lightweight-moisture', name: 'Lightweight Moisture Spray', brand: 'Demo Crown Care C', description: 'Fictional example of a lightweight spray for a general moisture routine.', is_demo: true, ownership_badge: null },
+  ],
+}
+
+function healthResponse(demoProductsEnabled: boolean) {
+  return {
+    status: 'ok', app_env: 'test', ai_mode: 'fake', ai_mode_setting: 'fake',
+    openai_key_set: false, ai_enabled: true, library_ready: true,
+    rules_version: 'v1', rules_status: 'draft', library_includes_drafts: true,
+    demo_products_enabled: demoProductsEnabled,
+  }
+}
+
+test('trusted recommendations render in a safe, ordered product shelf', async ({ page }) => {
+  let history: Record<string, unknown>[] = []
+  await page.route('**/api/v1/health', (route) => route.fulfill({ json: healthResponse(true) }))
+  await page.route('**/api/v1/coach/history', (route) => route.fulfill({ json: history }))
+  await page.route('**/api/v1/coach/ask', async (route) => {
+    const request = route.request().postDataJSON() as { question: string }
+    const answer = {
+      id: `reply-${history.length + 1}`,
+      created_at: new Date().toISOString(),
+      question: request.question,
+      kind: 'answer',
+      text: 'Loosen or remove sections that pull and choose a looser style. If thinning continues or worries you, contact your GP.',
+      action: 'Ask your stylist for less tension around your hairline.',
+      signpost: true,
+      professional_guidance: 'If thinning continues or worries you, contact your GP and ask whether a dermatologist referral is appropriate.',
+      links: [{ name: 'Find a GP', url: 'https://www.nhs.uk/service-search/find-a-gp' }],
+      sources: [{
+        article_id: 'tight-styles-and-your-edges',
+        title: 'Tight styles and your edges',
+        sources: [{ name: 'British Association of Dermatologists', url: 'https://www.skinhealthinfo.org.uk/condition/traction-alopecia' }],
+        status: 'draft',
+        reviewer: null,
+        review_date: null,
+      }],
+      demo_ai: true,
+      demo_products: demoProducts,
+    }
+    history = [answer, ...history]
+    await route.fulfill({ json: answer })
+  })
+
+  await register(page)
+  await page.goto('/ask')
+  await page.getByLabel('Your question').fill('My hairline is thinning after protective styles. What should I do?')
+  await page.getByRole('button', { name: 'Ask', exact: true }).click()
+
+  const reply = page.getByRole('heading', { name: 'Recommendations' }).locator('xpath=ancestor::article[1]')
+  await expect(reply.getByText('General hair-care recommendations, not clinical advice or a diagnosis.')).toBeVisible()
+  await expect(reply.getByRole('heading', { name: 'Next steps' })).toBeVisible()
+  await expect(reply.getByRole('heading', { name: 'When to seek professional support' })).toBeVisible()
+  await expect(reply.getByRole('link', { name: 'Find a GP' })).toBeVisible()
+  await expect(reply.getByText('Draft: not yet reviewed by an advisor')).toBeVisible()
+  await expect(reply.getByRole('heading', { name: 'Example products — demonstration only' })).toBeVisible()
+  await expect(reply.getByText(demoProducts.disclaimer)).toBeVisible()
+  await expect(reply.getByText('Demo product', { exact: true })).toHaveCount(3)
+  await expect(reply.getByText('black owned', { exact: true })).toHaveCount(2)
+  const orderedSections = await reply.locator('h3, h4').allTextContents()
+  expect(orderedSections).toEqual([
+    'Recommendations',
+    'Next steps',
+    'When to seek professional support',
+    'Example products — demonstration only',
+  ])
+  await expect(reply.getByText('Sources for these recommendations')).toBeVisible()
+  await axe(page, 'trusted recommendations')
+
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Example products — demonstration only' })).toHaveCount(1)
+  await page.getByLabel('Your question').fill('Another question about thinning edges.')
+  await page.getByRole('button', { name: 'Ask', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Example products — demonstration only' })).toHaveCount(2)
+  await expect(page.getByRole('heading', { name: 'Recommendations' })).toHaveCount(2)
+})
+
+test('trusted recommendations stay hidden when current capability is off', async ({ page }) => {
+  await page.route('**/api/v1/health', (route) => route.fulfill({ json: healthResponse(false) }))
+  await page.route('**/api/v1/coach/history', (route) => route.fulfill({ json: [] }))
+  await page.route('**/api/v1/coach/ask', (route) => route.fulfill({
+    json: {
+      id: 'cached-shelf',
+      created_at: new Date().toISOString(),
+      question: 'My hairline is thinning after protective styles.',
+      kind: 'answer',
+      text: 'Choose a looser style and contact your GP if thinning continues.',
+      signpost: true,
+      professional_guidance: 'Contact your GP if thinning continues or worries you.',
+      links: [],
+      sources: [],
+      demo_ai: true,
+      demo_products: demoProducts,
+    },
+  }))
+  await register(page)
+  await page.goto('/ask')
+  await page.getByLabel('Your question').fill('My hairline is thinning after protective styles.')
+  await page.getByRole('button', { name: 'Ask', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Recommendations' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Example products — demonstration only' })).toHaveCount(0)
+  await expect(page.getByText('General hair-care recommendations, not clinical advice or a diagnosis.')).toBeVisible()
+})
+
 test('welcome page', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Your hair')

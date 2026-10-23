@@ -62,7 +62,7 @@ class Handler(BaseHTTPRequestHandler):
         elif self.path.endswith("/responses"):
             name = body["text"]["format"]["name"]
             if name == "CoachAnswer":
-                payload = {"answer": "Wash once a week or every other week.", "cited_ids": [1], "action": "Plan wash day.", "signpost": False}
+                payload = {"answer": "Wash once a week or every other week.", "cited_ids": [1], "action": "Plan wash day.", "signpost": False, "professional_guidance": ""}
             elif name == "ZoneObservation":
                 payload = {k: "cant_tell" for k in ZoneObservation.model_fields}
             elif name == "DecisionFallback":
