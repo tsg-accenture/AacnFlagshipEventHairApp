@@ -8,8 +8,17 @@ export function useMe() {
   return useQuery({ queryKey: ['me'], queryFn: () => api<Me>('/me'), retry: false, staleTime: 30_000 })
 }
 
-export function useHealth() {
-  return useQuery({ queryKey: ['health'], queryFn: () => api<Health>('/health'), staleTime: 5 * 60_000 })
+export function useHealth(options: {
+  staleTime?: number
+  refetchOnMount?: boolean | 'always'
+  refetchOnWindowFocus?: boolean | 'always'
+} = {}) {
+  return useQuery({
+    queryKey: ['health'],
+    queryFn: () => api<Health>('/health'),
+    staleTime: 5 * 60_000,
+    ...options,
+  })
 }
 
 export type Receipt = {

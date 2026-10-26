@@ -26,6 +26,7 @@ export type Health = {
   ai_enabled: boolean
   /** The library is embedded for the AI in use, so the Hair Coach can find passages. */
   library_ready: boolean
+  demo_products_enabled: boolean
   rules_version: string
   rules_status: string
   library_includes_drafts: boolean
@@ -116,9 +117,27 @@ export type CoachReply = {
   text: string
   action?: string
   signpost?: boolean
+  professional_guidance?: string
   links?: { name: string; url: string }[]
   sources: SourceCard[]
   demo_ai?: boolean
+  demo_products?: DemoProducts
+}
+
+export type DemoProduct = {
+  id: string
+  name: string
+  brand: string
+  description: string
+  is_demo: true
+  ownership_badge: 'black owned' | null
+}
+
+export type DemoProducts = {
+  version: 'v1'
+  is_demo: true
+  disclaimer: string
+  items: DemoProduct[]
 }
 
 export type MapZone = {

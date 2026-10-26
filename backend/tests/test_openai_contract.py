@@ -62,7 +62,7 @@ class Handler(BaseHTTPRequestHandler):
         elif self.path.endswith("/responses"):
             name = body["text"]["format"]["name"]
             if name == "CoachAnswer":
-                payload = {"answer": "Wash once a week or every other week.", "cited_ids": [1], "action": "Plan wash day.", "signpost": False}
+                payload = {"answer": "Wash once a week or every other week.", "cited_ids": [1], "action": "Plan wash day.", "signpost": False, "professional_guidance": ""}
             elif name == "ZoneObservation":
                 payload = {k: "cant_tell" for k in ZoneObservation.model_fields}
             elif name == "DecisionFallback":
@@ -160,6 +160,7 @@ def test_openai_failure_is_a_clear_503(app, monkeypatch):
     api = make_user(app)
     s = get_settings()
     monkeypatch.setattr(s, "AI_MODE", "openai")
+    monkeypatch.setattr(s, "DEMO_PRODUCTS_ENABLED", True)
     monkeypatch.setattr(s, "OPENAI_API_KEY", "sk-test-not-real")
     monkeypatch.setattr(s, "OPENAI_BASE_URL", "http://127.0.0.1:9/v1")  # nothing listens here
     monkeypatch.setattr(s, "OPENAI_TIMEOUT_SECONDS", 2.0)

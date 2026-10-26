@@ -62,6 +62,7 @@ class Settings(BaseSettings):
     # Must be false for real users: only advisor-reviewed passages may be cited.
     LIBRARY_INCLUDE_DRAFTS: bool = False
     COACH_MIN_SIMILARITY: float = Field(default=0.30, ge=0.0, le=1.0)
+    DEMO_PRODUCTS_ENABLED: bool = False
 
     @field_validator("DATABASE_URL")
     @classmethod
@@ -90,6 +91,11 @@ class Settings(BaseSettings):
     @property
     def ai_enabled(self) -> bool:
         return self.uses_demo_ai or bool(self.OPENAI_API_KEY)
+
+    @property
+    def demo_products_enabled(self) -> bool:
+        """Demo products are opt-in and can never be enabled in production."""
+        return self.DEMO_PRODUCTS_ENABLED and self.APP_ENV != "production"
 
 
 @lru_cache

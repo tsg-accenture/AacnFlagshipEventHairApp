@@ -11,7 +11,7 @@ import { ReviewBadge, Sources } from '@/components/Sources'
 import { Button, Card, Chip, ErrorText, Loading, Notice, PageHeader } from '@/components/ui'
 import { ApiError, api } from '@/lib/api'
 import { shortDate, useHealth } from '@/lib/hooks'
-import type { Article, CoachReply } from '@/lib/types'
+import type { Article, CoachReply, DemoProducts } from '@/lib/types'
 
 // Library filters (board 2's chips). Each one matches articles by their topics.
 const FILTERS: [string, string[]][] = [
@@ -38,8 +38,14 @@ function AskInner() {
 
 function Coach() {
   const qc = useQueryClient()
-  const health = useHealth()
-  const history = useQuery({ queryKey: ['coach-history'], queryFn: () => api<CoachReply[]>('/coach/history') })
+  const health = useHealth({ staleTime: 0, refetchOnMount: 'always', refetchOnWindowFocus: 'always' })
+  const history = useQuery({
+    queryKey: ['coach-history'],
+    queryFn: () => api<CoachReply[]>('/coach/history'),
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: 'always',
+  })
   const articles = useQuery({ queryKey: ['articles'], queryFn: () => api<Article[]>('/library/articles') })
   const [q, setQ] = useState('')
   const [busy, setBusy] = useState(false)
@@ -64,6 +70,7 @@ function Coach() {
   }
 
   const aiOff = health.data && !health.data.ai_enabled
+  const demoProductsEnabled = health.isSuccess && !health.isFetching && health.data.demo_products_enabled === true
   const past = (history.data ?? []).filter((h) => h.id !== latest?.id)
 
   return (
@@ -80,6 +87,8 @@ function Coach() {
           </Notice>
         </div>
       )}
+      {health.isError && <div className="mb-4"><ErrorText error={health.error} /></div>}
+      {history.isError && <div className="mb-4"><ErrorText error={history.error} /></div>}
       {aiOff ? (
         <Notice title="The Hair Coach needs AI set up">Add an OpenAI key to backend/.env, or set AI_MODE=fake to try it. You can still read the library below.</Notice>
       ) : (
@@ -127,8 +136,8 @@ function Coach() {
       <div className="mt-4"><ErrorText error={error instanceof ApiError && error.status === 429 ? error : error} /></div>
 
       <div className="mt-6 space-y-4" aria-live="polite">
-        {latest && <Reply r={latest} />}
-        {past.map((r) => <Reply key={r.id} r={r} />)}
+        {latest && <Reply r={latest} demoProductsEnabled={demoProductsEnabled} />}
+        {past.map((r) => <Reply key={r.id} r={r} demoProductsEnabled={demoProductsEnabled} />)}
       </div>
 
       <section className="mt-10" aria-labelledby="library-title">
@@ -156,30 +165,132 @@ function Coach() {
   )
 }
 
-function Reply({ r }: { r: CoachReply }) {
+const PRODUCT_DISCLAIMER = 'Fictional products and ownership labels for demonstration only. These are not real brands or treatments for hair loss.'
+const EXPECTED_PRODUCTS = [
+  ['demo-gentle-cleanse', 'Gentle Cleanse Shampoo', 'Demo Crown Care A', 'Fictional example of a shampoo for routine cleansing.', 'black owned'],
+  ['demo-soft-touch', 'Soft Touch Conditioner', 'Demo Crown Care B', 'Fictional example of a rinse-out conditioner for a regular wash routine.', 'black owned'],
+  ['demo-lightweight-moisture', 'Lightweight Moisture Spray', 'Demo Crown Care C', 'Fictional example of a lightweight spray for a general moisture routine.', null],
+] as const
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function hasExactlyKeys(value: Record<string, unknown>, keys: string[]): boolean {
+  const actual = Object.keys(value).sort()
+  const expected = [...keys].sort()
+  return actual.length === expected.length && actual.every((key, i) => key === expected[i])
+}
+
+function validDemoProducts(value: unknown): value is DemoProducts {
+  if (!isRecord(value) || !hasExactlyKeys(value, ['version', 'is_demo', 'disclaimer', 'items'])
+    || value.version !== 'v1' || value.is_demo !== true
+    || value.disclaimer !== PRODUCT_DISCLAIMER || !Array.isArray(value.items)
+    || value.items.length !== EXPECTED_PRODUCTS.length) return false
+  return value.items.every((item, i) => {
+    if (!isRecord(item) || !hasExactlyKeys(item, ['id', 'name', 'brand', 'description', 'is_demo', 'ownership_badge'])) return false
+    const expected = EXPECTED_PRODUCTS[i]
+    return item.id === expected[0]
+      && item.name === expected[1]
+      && item.brand === expected[2]
+      && item.description === expected[3]
+      && item.is_demo === true
+      && item.ownership_badge === expected[4]
+  })
+}
+
+function Reply({ r, demoProductsEnabled }: { r: CoachReply; demoProductsEnabled: boolean }) {
   const border = r.kind === 'support' || r.kind === 'see_someone_now' ? 'border-2 border-ink' : ''
+  const products = r.kind === 'answer' && demoProductsEnabled && validDemoProducts(r.demo_products)
+    ? r.demo_products
+    : null
   return (
     <Card as="article" className={`p-6 ${border}`}>
       <p className="ml-auto w-fit max-w-[90%] rounded-[1.25rem] rounded-br-md bg-ink px-4 py-2.5 text-surface">
         <span className="sr-only">You asked, </span>{r.question}
       </p>
       <p className="mt-1 text-right text-[0.8rem] text-muted">{shortDate(r.created_at)}</p>
-      <p className="mt-3 max-w-[68ch] text-[1.08rem]">{r.text}</p>
-      {r.action && <p className="mt-3 rounded-tile bg-lime-tint px-4 py-3 font-semibold hc-border">{r.action}</p>}
-      {!!r.links?.length && (
-        <ul className="mt-3 space-y-1">
-          {r.links.map((l) => (
-            <li key={l.url}><a href={l.url} target="_blank" rel="noopener noreferrer" className="font-semibold underline underline-offset-4">{l.name}</a></li>
-          ))}
-        </ul>
-      )}
-      <Sources sources={r.sources} />
       {r.kind === 'answer' && (
-        <p className="mt-3 text-[0.85rem] text-muted">
-          {r.demo_ai ? 'Demo AI: a canned reply built from the passage, not from OpenAI.' : 'Written by AI from the passages above only.'}
-        </p>
+        <section aria-labelledby={`recommendations-${r.id}`}>
+          <h3 id={`recommendations-${r.id}`} className="mt-4 text-[1.1rem] font-semibold">Recommendations</h3>
+          <p className="mt-1 text-[0.92rem] text-muted">General hair-care recommendations, not clinical advice or a diagnosis.</p>
+          <p className="mt-3 max-w-[68ch] text-[1.08rem]">{r.text}</p>
+          {r.action && (
+            <section className="mt-4" aria-labelledby={`next-steps-${r.id}`}>
+              <h4 id={`next-steps-${r.id}`} className="font-semibold">Next steps</h4>
+              <p className="mt-2 rounded-tile bg-lime-tint px-4 py-3 font-semibold hc-border">{r.action}</p>
+            </section>
+          )}
+          {r.signpost && (
+            <section className="mt-4" aria-labelledby={`professional-support-${r.id}`}>
+              <h4 id={`professional-support-${r.id}`} className="font-semibold">When to seek professional support</h4>
+              {r.professional_guidance && <p className="mt-2 max-w-[68ch]">{r.professional_guidance}</p>}
+              {!!r.links?.length && (
+                <ul className="mt-2 space-y-1">
+                  {r.links.map((l) => (
+                    <li key={l.url}><a href={l.url} target="_blank" rel="noopener noreferrer" className="font-semibold underline underline-offset-4">{l.name}</a></li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
+          {!r.signpost && !!r.links?.length && (
+            <ul className="mt-3 space-y-1">
+              {r.links.map((l) => (
+                <li key={l.url}><a href={l.url} target="_blank" rel="noopener noreferrer" className="font-semibold underline underline-offset-4">{l.name}</a></li>
+              ))}
+            </ul>
+          )}
+          <Sources sources={r.sources} label="Sources for these recommendations" />
+          <p className="mt-3 text-[0.85rem] text-muted">
+            {r.demo_ai
+              ? 'Demo AI: a canned reply built from the passage, not from OpenAI. Sources apply to the recommendations, not the fictional example products.'
+              : 'Written by AI from the passages above only. Sources apply to the recommendations, not the fictional example products.'}
+          </p>
+          {products && <ProductShelf id={r.id} products={products} />}
+        </section>
+      )}
+      {r.kind !== 'answer' && (
+        <>
+          <p className="mt-3 max-w-[68ch] text-[1.08rem]">{r.text}</p>
+          {r.action && <p className="mt-3 rounded-tile bg-lime-tint px-4 py-3 font-semibold hc-border">{r.action}</p>}
+          {!!r.links?.length && (
+            <ul className="mt-3 space-y-1">
+              {r.links.map((l) => (
+                <li key={l.url}><a href={l.url} target="_blank" rel="noopener noreferrer" className="font-semibold underline underline-offset-4">{l.name}</a></li>
+              ))}
+            </ul>
+          )}
+          <Sources sources={r.sources} />
+        </>
       )}
     </Card>
+  )
+}
+
+function ProductShelf({ id, products }: { id: string; products: DemoProducts }) {
+  return (
+    <section className="mt-5 border-t border-line pt-4" aria-labelledby={`demo-products-title-${id}`}>
+      <h3 id={`demo-products-title-${id}`} className="text-[1.15rem] font-semibold">Example products — demonstration only</h3>
+      <p className="mt-2 rounded-tile border border-line bg-panel p-3 text-[0.92rem] font-medium hc-border">{products.disclaimer}</p>
+      <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {products.items.map((product) => (
+          <li key={product.id}>
+            <Card as="article" className="h-full p-4">
+              <p className="text-[0.8rem] font-semibold tracking-wide text-muted">Demo product</p>
+              <h4 className="mt-2 font-semibold">{product.name}</h4>
+              <p className="mt-1 text-[0.92rem] text-muted">{product.brand}</p>
+              <p className="mt-2">{product.description}</p>
+              {product.ownership_badge && (
+                <p className="mt-3 inline-flex rounded-full border border-line-strong px-3 py-1 text-[0.85rem] font-semibold hc-border">
+                  {product.ownership_badge}
+                </p>
+              )}
+            </Card>
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
 

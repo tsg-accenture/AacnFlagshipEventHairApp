@@ -39,6 +39,13 @@ def test_auto_is_the_default(monkeypatch):
     assert settings().AI_MODE == "auto"
 
 
+def test_demo_products_are_opt_in_non_production_and_independent_of_ai_mode():
+    assert settings().DEMO_PRODUCTS_ENABLED is False
+    assert settings(AI_MODE="fake", DEMO_PRODUCTS_ENABLED=True).demo_products_enabled is True
+    assert settings(AI_MODE="openai", OPENAI_API_KEY="sk-test", DEMO_PRODUCTS_ENABLED=True).demo_products_enabled is True
+    assert settings(APP_ENV="production", DEMO_PRODUCTS_ENABLED=True).demo_products_enabled is False
+
+
 def test_get_ai_follows_the_key(monkeypatch):
     s = get_settings()
     db = session_factory()()
@@ -64,11 +71,13 @@ def test_unused_key_is_announced(caplog):
     assert announce_ai(settings(AI_MODE="auto")).startswith("AI: Demo AI")
 
 
-def test_health_reports_the_ai_in_use(api):
+def test_health_reports_the_ai_in_use(api, monkeypatch):
+    monkeypatch.setattr(get_settings(), "OPENAI_API_KEY", "")
     h = api.get("/api/v1/health").json()
     assert h["ai_mode"] == "fake" and h["ai_mode_setting"] == "fake"
     assert h["openai_key_set"] is False
     assert h["library_ready"] is True  # the test library is embedded with Demo AI
+    assert h["demo_products_enabled"] is False
 
 
 def test_production_refuses_demo_ai_without_a_key():
